@@ -830,34 +830,36 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
           </div>
         </div>
 
-        {/* Fixed Bottom Action */}
-        <div className="flex-shrink-0 p-3 lg:p-4 bg-gray-900 border-t border-gray-700">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const gameDate = playerData.gameDate
-              let dateStr = ""
+        {/* Fixed Bottom Action (only if adding to picks is enabled) */}
+        {onAddToPicks && (
+          <div className="flex-shrink-0 p-3 lg:p-4 bg-gray-900 border-t border-gray-700">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const gameDate = playerData.gameDate
+                let dateStr = ""
 
-              if (gameDate) {
-                const [month, day, year] = gameDate.split("/")
-                dateStr = `${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`
-              }
+                if (gameDate) {
+                  const [month, day, year] = gameDate.split("/")
+                  dateStr = `${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`
+                }
 
-              const pickId = `${playerData.name.toLowerCase().replace(/\s+/g, "-")}_${threshold}_${dateStr}`
+                const pickId = `${playerData.name.toLowerCase().replace(/\s+/g, "-")}_${threshold}_${dateStr}`
 
-              onAddToPicks({
-                ...playerData,
-                id: pickId,
-                threshold,
-              })
-              onClose()
-            }}
-            className="w-full py-3 lg:py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 active:from-green-800 active:to-green-700 text-white font-medium rounded-lg flex items-center justify-center transition-all duration-200 shadow-lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            <span>Add to Picks</span>
-          </button>
-        </div>
+                onAddToPicks({
+                  ...playerData,
+                  id: pickId,
+                  threshold,
+                })
+                onClose()
+              }}
+              className="w-full py-3 lg:py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 active:from-green-800 active:to-green-700 text-white font-medium rounded-lg flex items-center justify-center transition-all duration-200 shadow-lg"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              <span>Add to Picks</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

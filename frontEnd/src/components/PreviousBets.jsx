@@ -1,10 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import PlayerAnalysisModal from "./PlayerAnalysisModal"
 import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Calendar } from 'lucide-react'
 
 const PreviousBets = ({ bets, activeBets }) => {
   const [expandedBets, setExpandedBets] = useState({})
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+
+  const handleOpenModal  = (player) => setSelectedPlayer(player)
+  const handleCloseModal = ()       => setSelectedPlayer(null)
 
   const toggleExpand = (betId) => {
     setExpandedBets((prev) => ({
@@ -136,7 +141,7 @@ const PreviousBets = ({ bets, activeBets }) => {
                               Picks ({bet.picks?.length || 0})
                             </h4>
                             {bet.picks?.map((pick, index) => (
-                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50">
+                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50 cursor-pointer" onClick={() => handleOpenModal(pick)}>
                                 <div className="flex items-center space-x-3">
                                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border-2 border-gray-600 flex-shrink-0">
                                     <img
@@ -307,7 +312,8 @@ const PreviousBets = ({ bets, activeBets }) => {
                                 pick.hit === 1
                                   ? "bg-gradient-to-r from-green-800/50 to-green-900/50 border-green-700/50"
                                   : "bg-gradient-to-r from-red-800/50 to-red-900/50 border-red-700/50"
-                              }`}
+                              } cursor-pointer`}
+                              onClick={() => handleOpenModal(pick)}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
@@ -364,6 +370,13 @@ const PreviousBets = ({ bets, activeBets }) => {
           )}
         </div>
       </div>
+      {selectedPlayer && (
+        <PlayerAnalysisModal
+          playerData={selectedPlayer}
+          onClose={handleCloseModal}
+          // no onAddToPicks here: we’re just viewing past bets
+        />
+      )}
     </div>
   )
 }
