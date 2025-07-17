@@ -2,12 +2,10 @@
 
 import { useState } from "react"
 import { getProcessedPlayer } from "../services/firebaseService"
-import PlayerAnalysisModal from "./PlayerAnalysisModal"
 import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Calendar } from 'lucide-react'
 
 const PreviousBets = ({ bets, activeBets }) => {
   const [expandedBets, setExpandedBets] = useState({})
-  const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   const handleOpenModal = async (pick) => {
    // pick.player should be the player name or ID
@@ -320,7 +318,7 @@ const PreviousBets = ({ bets, activeBets }) => {
                                   ? "bg-gradient-to-r from-green-800/50 to-green-900/50 border-green-700/50"
                                   : "bg-gradient-to-r from-red-800/50 to-red-900/50 border-red-700/50"
                               } cursor-pointer`}
-                              onClick={() => handleOpenModal(pick)}
+                              onClick={() => onPlayerClick(pick)}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
