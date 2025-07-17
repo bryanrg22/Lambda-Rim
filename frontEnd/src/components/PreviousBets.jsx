@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Calendar } from 'lucide-react'
+import PlayerAnalysisModal from "./PlayerAnalysisModal"
 
 const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
   const [expandedBets, setExpandedBets] = useState({})
