@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { getProcessedPlayer } from "../services/firebaseService"
 import PlayerAnalysisModal from "./PlayerAnalysisModal"
 import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Calendar } from 'lucide-react'
 
@@ -8,7 +9,13 @@ const PreviousBets = ({ bets, activeBets }) => {
   const [expandedBets, setExpandedBets] = useState({})
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
-  const handleOpenModal  = (player) => setSelectedPlayer(player)
+  const handleOpenModal = async (pick) => {
+   // pick.player should be the player name or ID
+   // pick.threshold should be the numeric threshold
+   const full = await getProcessedPlayer(pick.player || pick.name, pick.threshold)
+   // if Firestore has it, use that, otherwise fall back to
+    setSelectedPlayer(full || pick)
+  }
   const handleCloseModal = ()       => setSelectedPlayer(null)
 
   const toggleExpand = (betId) => {
