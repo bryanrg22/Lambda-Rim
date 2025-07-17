@@ -1,21 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { getProcessedPlayer } from "../services/firebaseService"
 import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, DollarSign, Target, Calendar } from 'lucide-react'
 
-const PreviousBets = ({ bets, activeBets }) => {
+const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
   const [expandedBets, setExpandedBets] = useState({})
 
-  const handleOpenModal = async (pick) => {
-   // pick.player should be the player name or ID
-   // pick.threshold should be the numeric threshold
-   const full = await getProcessedPlayer(pick.player || pick.name, pick.threshold)
-   // if Firestore has it, use that, otherwise fall back to
-    setSelectedPlayer(full || pick)
-  }
-  const handleCloseModal = ()       => setSelectedPlayer(null)
-
+  
   const toggleExpand = (betId) => {
     setExpandedBets((prev) => ({
       ...prev,
@@ -146,7 +137,7 @@ const PreviousBets = ({ bets, activeBets }) => {
                               Picks ({bet.picks?.length || 0})
                             </h4>
                             {bet.picks?.map((pick, index) => (
-                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50 cursor-pointer" onClick={() => handleOpenModal(pick)}>
+                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50 cursor-pointer" onClick={() => onPlayerClick(pick)}>
                                 <div className="flex items-center space-x-3">
                                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border-2 border-gray-600 flex-shrink-0">
                                     <img
@@ -375,13 +366,6 @@ const PreviousBets = ({ bets, activeBets }) => {
           )}
         </div>
       </div>
-      {selectedPlayer && (
-        <PlayerAnalysisModal
-          playerData={selectedPlayer}
-          onClose={handleCloseModal}
-          // no onAddToPicks here: we’re just viewing past bets
-        />
-      )}
     </div>
   )
 }
