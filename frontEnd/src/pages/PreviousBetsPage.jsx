@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import AppLayout from "../components/AppLayout"
 import PreviousBets from "../components/PreviousBets"
 import ActiveBet from "../components/ActiveBet"
-import PlayerStatsModal from "../components/PlayerStatsModal"
+import PlayerAnalysisModal from "../components/PlayerAnalysisModal"
 import EditBetModal from "../components/EditBetModal"
 import {
   getActiveBets,
