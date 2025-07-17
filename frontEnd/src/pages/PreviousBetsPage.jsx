@@ -216,7 +216,7 @@ export default function PreviousBetsPage() {
       <PreviousBets bets={previousBets} activeBets={formattedActiveBets} onPlayerClick={(pick) => setSelectedPlayer(pick)} />
 
       {/* Player Stats Modal */}
-      {selectedPlayer && <PlayerStatsModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />}
+      {selectedPlayer && <PlayerAnalysisModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />}
 
       {/* Edit Bet Modal */}
       {editingBet && <EditBetModal bet={editingBet} onSave={handleSaveBet} onClose={() => setEditingBet(null)} />}
