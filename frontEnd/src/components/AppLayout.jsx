@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Home, LogOut, History, Bell, ListChecks, Menu, X, House } from "lucide-react"
+import { Home, LogOut, History, Bell, ListChecks, Menu, X } from "lucide-react"
 import { getUserProfile } from "../services/firebaseService"
 
 export default function AppLayout({ children }) {
@@ -141,7 +141,7 @@ export default function AppLayout({ children }) {
             <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" />
             <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
             <NavItem path="/alerts" icon={Bell} label="Alerts" />
-            <NavItem path="/alerts" icon={House} label="Community" mobile />
+            <NavItem path="/alerts" icon={Bell} label="Community" mobile />
           </nav>
           <div className="flex items-center space-x-4">
             <img
@@ -204,7 +204,7 @@ export default function AppLayout({ children }) {
               <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" mobile />
               <NavItem path="/previous-bets" icon={History} label="Previous Bets" mobile />
               <NavItem path="/alerts" icon={Bell} label="Alerts" mobile />
-              <NavItem path="/alerts" icon={House} label="Community" mobile />
+              <NavItem path="/alerts" icon={Bell} label="Community" mobile />
             </nav>
 
             <div className="absolute bottom-4 left-4 right-4">
