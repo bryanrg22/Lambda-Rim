@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Trophy, TrendingUp, TrendingDown, Clock, Dollar
 
 const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
   const [expandedBets, setExpandedBets] = useState({})
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   
   const toggleExpand = (betId) => {
@@ -31,8 +32,17 @@ const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
     )
   }
 
+  
+
   return (
     <div className="space-y-6">
+      {/* Player Analysis Modal */}
+      {selectedPlayer && (
+        <PlayerAnalysisModal 
+          playerData={selectedPlayer} 
+          onClose={() => setSelectedPlayer(null)} 
+        />
+      )}
       <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 sm:p-8 border-b border-gray-700 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
@@ -137,7 +147,7 @@ const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
                               Picks ({bet.picks?.length || 0})
                             </h4>
                             {bet.picks?.map((pick, index) => (
-                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50 cursor-pointer" onClick={() => onPlayerClick(pick)}>
+                              <div key={index} className="bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg p-3 border border-gray-600/50 cursor-pointer" onClick={() => setSelectedPlayer(pick)}>
                                 <div className="flex items-center space-x-3">
                                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border-2 border-gray-600 flex-shrink-0">
                                     <img
@@ -309,7 +319,7 @@ const PreviousBets = ({ bets, activeBets, onPlayerClick }) => {
                                   ? "bg-gradient-to-r from-green-800/50 to-green-900/50 border-green-700/50"
                                   : "bg-gradient-to-r from-red-800/50 to-red-900/50 border-red-700/50"
                               } cursor-pointer`}
-                              onClick={() => onPlayerClick(pick)}
+                              onClick={() => setSelectedPlayer(pick)}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
