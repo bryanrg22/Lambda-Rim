@@ -213,7 +213,7 @@ export default function PreviousBetsPage() {
         </div>
       )}
 
-      <PreviousBets bets={previousBets} activeBets={formattedActiveBets} />
+      <PreviousBets bets={previousBets} activeBets={formattedActiveBets} onPlayerClick={(pick) => setSelectedPlayer(pick)} />
 
       {/* Player Stats Modal */}
       {selectedPlayer && <PlayerStatsModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />}
