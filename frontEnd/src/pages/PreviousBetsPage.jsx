@@ -126,7 +126,7 @@ export default function PreviousBetsPage() {
   // Update the formatActiveBets function to handle multiple bets
   const formatActiveBets = (bets) => {
     if (!bets || !Array.isArray(bets) || bets.length === 0) return []
-
+  
     return bets.map((bet) => ({
       id: bet.id,
       date: new Date(bet.createdAt?.seconds * 1000 || Date.now())
@@ -143,23 +143,18 @@ export default function PreviousBetsPage() {
       bettingPlatform: bet.bettingPlatform || "PrizePicks",
       betType: bet.betType || "Power Play",
       picks: bet.picks.map((pick) => ({
-        player: pick.name,
-        team: pick.team || "Team",
-        opponent: pick.opponent || "Opponent",
-        threshold: pick.threshold,
-        recommendation: pick.recommendation,
-        photoUrl: pick.photoUrl || "/placeholder.svg?height=40&width=40",
+        ...pick, // Keep all original player properties
+        player: pick.name, // Alias for display
       })),
     }))
   }
 
   // Also fix the formatBetHistory function which has the same issue
   const formatBetHistory = (bets) => {
-    // Add a null check to prevent the error
     if (!bets || !Array.isArray(bets)) {
       return []
     }
-
+  
     return bets.map((bet) => ({
       id: bet.id,
       date: new Date(bet.createdAt?.seconds * 1000 || Date.parse(bet.createdAt) || Date.now())
@@ -176,15 +171,8 @@ export default function PreviousBetsPage() {
       betType: bet.betType || "Power Play",
       picks: Array.isArray(bet.picks)
         ? bet.picks.map((pick) => ({
-            name: pick.name,
-            team: pick.team || "Team",
-            opponent: pick.opponent || "Opponent",
-            threshold: pick.threshold,
-            recommendation: pick.recommendation,
-            photoUrl: pick.photoUrl || "/placeholder.svg?height=40&width=40",
-            finalPoints: pick.finalPoints ?? -1,
-            hit: pick.hit ?? -1,
-            bet_result: pick.bet_result ?? "-1",
+            ...pick, // Keep all original player properties
+            player: pick.name, // Alias for display
           }))
         : [],
     }))
