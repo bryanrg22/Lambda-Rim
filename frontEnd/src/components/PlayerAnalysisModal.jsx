@@ -166,10 +166,11 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
         `/api/player/${playerData.pick_id}/more_games`,
         window.location.origin
       );
-      url.searchParams.append('player_id', playerData.playerId || '');
+      url.searchParams.append('playerId', playerData.playerId || '');
       url.searchParams.append('gameStatus', playerData.gameStatus || '');
       url.searchParams.append('season', playerData.season || '');
       url.searchParams.append('game_id', playerData.gameId || '');
+      url.searchParams.append('gameType', playerData.gameType || '');
       
 
       const res = await fetch(url.toString())
@@ -775,7 +776,12 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                           className="flex items-center justify-between py-2 px-3 bg-red-500/10 rounded-lg border border-red-500/20"
                         >
                           <div className="flex items-center space-x-3">
-                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <ImageWithFallback
+                              src={game.opponentLogo || "/placeholder.svg"}
+                              alt={game.opponent}
+                              className="w-5 h-5"
+                              fallbackSrc="/placeholder.svg?height=20&width=20"
+                            />
                             <div>
                               <div className="text-sm font-medium">{game.location}</div>
                               <div className="text-xs text-gray-400">{game.date}</div>

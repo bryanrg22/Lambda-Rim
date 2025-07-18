@@ -81,7 +81,7 @@ def _slice_before_game(df, game_id):
     return df.iloc[:idx_curr]              # everything *before* that row
 
 
-def fetch_more_games(player_id, gameStatus, season, game_id):
+def fetch_more_games(player_id, gameStatus, season, game_id, gameType):
     """
     Fetch more games for a player, up to max_games
     """
@@ -94,7 +94,7 @@ def fetch_more_games(player_id, gameStatus, season, game_id):
         )
     df = pgl.get_data_frames()[0]
 
-    if gameStatus == "Concluded":
+    if gameStatus == "Concluded" and gameType != "Playoffs":
         df = _slice_before_game(df, game_id)
 
 

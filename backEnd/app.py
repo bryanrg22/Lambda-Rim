@@ -764,18 +764,19 @@ def parse_screenshot_endpoint():
 
 
 @app.route("/api/player/<pick_id>/more_games", methods=["GET"])
-def more_games_endpoint():
+def more_games_endpoint(pick_id):
     """
     Returns the “extra” regular-season games beyond the first 5.
     Optional query-param: ?season=YYYY-YY; otherwise uses current season.
     """
     try:
-        player_id = request.args.get('player_d', '')
+        player_id = request.args.get('playerId', '')
         gameStatus = request.args.get('gameStatus', '')
         season = request.args.get('season', '')
         game_id = request.args.get('game_id', '')
-        
-        games = player_analyzer.fetch_more_games(player_id, gameStatus, season, game_id)
+        gameType = request.args.get('gameType', '')
+
+        games = player_analyzer.fetch_more_games(player_id, gameStatus, season, game_id, gameType)
         return jsonify(games), 200
     except Exception as e:
         traceback.print_exc()

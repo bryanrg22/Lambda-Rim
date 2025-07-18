@@ -28,7 +28,7 @@ def calculate_poisson_probability(avg_points, threshold):
 
 
 
-from injury_report import get_player_injury_status as check_injury_status
+from injury_report import get_player_injury_status_new as check_injury_status
 
 #############################
 # Existing (to be modified): get_opponent_defensive_rank
