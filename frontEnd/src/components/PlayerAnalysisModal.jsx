@@ -107,7 +107,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
     volatilityForecast,
     season_games_agst_opp = [],
     threshold,
-    num_playoff_games = 0,
+    playoff_num_games = 0,
     playoffAvg,
     playoff_games = [],
     volatilityPlayOffsForecast,
@@ -351,7 +351,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
             </div>
 
             {/* Playoff Stats Row - Only if playoff data exists */}
-            {num_playoff_games > 0 && (
+            {playoff_num_games > 0 && (
               <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
                 <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
                 <div className="text-xs text-yellow-400">Current Score</div>
