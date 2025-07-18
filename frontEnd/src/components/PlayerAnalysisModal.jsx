@@ -133,6 +133,11 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
     underdogFlag,
     details,
     home_game,
+    num_season_games,
+    playoff_round,
+    playoff_curr_series_score,
+    playoff_curr_game_num,
+    playoff_points_avg,
   } = playerData
 
   // Format probabilities for display
@@ -356,13 +361,13 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                 <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
                 <div className="text-xs text-yellow-400">Current Score</div>
                 <div className="text-sm font-bold text-white">
-                  {playoff_curr_score}
+                  {playoff_curr_series_score}
                 </div>
                 </div>
                 <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
                   <div className="text-xs text-yellow-400">Playoff Point Avg</div>
                   <div className={`text-sm font-bold ${getComparisonColor(playoffAvg, threshold)}`}>
-                    {formatNumber(playoffAvg)}
+                    {formatNumber(playoff_points_avg)}
                   </div>
                 </div>
                 <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
@@ -380,7 +385,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                 <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
                   <div className="text-xs text-yellow-400">Playoff Point Under Count</div>
                   <div className="text-sm font-bold text-white">
-                    {formatNumber(playoff_underCount)}
+                    {playoff_underCount}
                   </div>
                 </div>
                 {volatilityPlayOffsForecast && volatilityPlayOffsForecast !== 0 && (
@@ -562,6 +567,67 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
 
             {/* Expandable Sections */}
 
+            {/* Playoff Games Section - Using your playoff_games data */}
+            {playoff_num_games > 0 && playoff_games.length > 0 && (
+              <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700">
+                <button
+                  className="w-full flex justify-between items-center p-3 hover:bg-gray-700/30 transition-colors"
+                  onClick={() => toggleSection("playoffGames")}
+                >
+                  <div className="flex items-center">
+                    <Trophy className="w-4 h-4 text-yellow-400 mr-2" />
+                    <span className="text-sm font-medium">Playoff Games ({playoff_num_games})</span>
+                    <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                      Avg: {formatNumber(playoff_points_avg)} pts
+                    </span>
+                  </div>
+                  {expandedSection === "playoffGames" ? (
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+                {expandedSection === "playoffGames" && (
+                  <div className="border-t border-gray-700">
+                    <div className="p-3 space-y-2">
+                      {playoff_games.map((game, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between py-2 px-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <ImageWithFallback
+                              src={game.opponentLogo || "/placeholder.svg"}
+                              alt={game.opponent}
+                              className="w-5 h-5"
+                              fallbackSrc="/placeholder.svg?height=30&width=30"
+                            />
+                            <div>
+                              <div className="text-sm font-medium">{game.opponentFullName || game.opponent}</div>
+                              <div className="text-xs text-gray-400">
+                                {game.date} • {game.round} • {'Game '}{game.game_number} • {'Curr Score: '}{game.series_score} • {game.location} 
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-sm font-bold ${getComparisonColor(game.points, threshold)}`}>
+                              {game.points} pts
+                            </div>
+                            <div className="text-xs text-gray-400">{game.minutes}min</div>
+                            <div
+                              className={`text-xs font-medium ${game.points > threshold ? "text-green-400" : "text-red-400"}`}
+                            >
+                              {game.points > threshold ? "OVER" : "UNDER"}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Recent Regular Season Games */}
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700">
               <button
@@ -570,7 +636,10 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
               >
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 text-green-400 mr-2" />
-                  <span className="text-sm font-medium">Recent Games ({last5RegularGames.length})</span>
+                  <span className="text-sm font-medium">Recent Season Games ({num_season_games})</span>
+                  <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                      Avg: {formatNumber(seasonAvgPoints)} pts
+                    </span>
                 </div>
                 {expandedSection === "recentGames" ? (
                   <ChevronUp className="w-4 h-4 text-gray-400" />
@@ -663,62 +732,6 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                 </div>
               )}
             </div>
-
-            {/* Playoff Games Section - Using your playoff_games data */}
-            {num_playoff_games > 0 && playoff_games.length > 0 && (
-              <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700">
-                <button
-                  className="w-full flex justify-between items-center p-3 hover:bg-gray-700/30 transition-colors"
-                  onClick={() => toggleSection("playoffGames")}
-                >
-                  <div className="flex items-center">
-                    <Trophy className="w-4 h-4 text-yellow-400 mr-2" />
-                    <span className="text-sm font-medium">Playoff Games ({num_playoff_games})</span>
-                    <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                      Avg: {formatNumber(playoffAvg)} pts
-                    </span>
-                  </div>
-                  {expandedSection === "playoffGames" ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  )}
-                </button>
-                {expandedSection === "playoffGames" && (
-                  <div className="border-t border-gray-700">
-                    <div className="p-3 space-y-2">
-                      {playoff_games.map((game, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between py-2 px-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Trophy className="w-4 h-4 text-yellow-400" />
-                            <div>
-                              <div className="text-sm font-medium">{game.opponentFullName || game.opponent}</div>
-                              <div className="text-xs text-gray-400">
-                                {game.date} • {game.location}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-sm font-bold ${getComparisonColor(game.points, threshold)}`}>
-                              {game.points} pts
-                            </div>
-                            <div className="text-xs text-gray-400">{game.minutes}min</div>
-                            <div
-                              className={`text-xs font-medium ${game.points > threshold ? "text-green-400" : "text-red-400"}`}
-                            >
-                              {game.points > threshold ? "OVER" : "UNDER"}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Season vs Opponent - Using your season_games_agst_opp data */}
             {season_games_agst_opp.length > 0 && (
