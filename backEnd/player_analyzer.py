@@ -71,7 +71,17 @@ def get_current_season():
     return f"{season_start}-{str(season_end)[-2:]}"
 
 
-def fetch_more_games(player_id):
+def _slice_before_game(df, game_id):
+    """
+    Return a sub-DF containing only rows BEFORE the supplied Game_ID.
+    Assumes df is in chronological order (earliest first).
+    """
+    # index of the current game (will raise if not in DF – good sanity check)
+    idx_curr = df.index[df["Game_ID"] == game_id][0]
+    return df.iloc[:idx_curr]              # everything *before* that row
+
+
+def fetch_more_games(player_id, gameStatus, season, game_id):
     """
     Fetch more games for a player, up to max_games
     """
@@ -79,12 +89,17 @@ def fetch_more_games(player_id):
     more_regular_games = []
     pgl = PlayerGameLog(
             player_id=player_id,                 
-            season=get_current_season(),
+            season=season,
             season_type_all_star='Regular Season'
         )
-    games_df = pgl.get_data_frames()[0]
-    for i in range(5, len(games_df)):
-        curr = games_df.iloc[i]
+    df = pgl.get_data_frames()[0]
+
+    if gameStatus == "Concluded":
+        df = _slice_before_game(df, game_id)
+
+
+    for i in range(5, len(df)):
+        curr = df.iloc[i]
         matchup = curr['MATCHUP']            
         if ' vs. ' in matchup:
             location = 'Home'
@@ -314,12 +329,12 @@ def analyze_player_performance(
         "avg_fta": per_game(totals["fta"]),
         "avg_ftm": per_game(totals["ftm"]),
         "avg_tov": per_game(totals["tov"]),
+
         "shot_dist_3pt": shot_dist_3p,
         "ft_rate": ft_rate,
         "efg": efg,
         # extras you might want later
         "ts_pct": ts_pct,
-        "games": G
     }
 
     return results_dict

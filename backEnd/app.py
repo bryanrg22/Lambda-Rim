@@ -130,26 +130,26 @@ def fetch_player_stats(game_id, player_id):
         
         if df.empty:
             logger.warning(f"No player stats available for game {game_id}")
-            return None, None
+            return -1, -1
             
-        mask = df["PLAYER_ID"] == int(player_id)
-        if not mask.any():
+        row = df.loc[df["PLAYER_ID"] == int(player_id)]
+        if row.empty:
             logger.warning(f"Player {player_id} not found in game {game_id}")
-            return None, None
-            
-        row = df.loc[mask].iloc[0]
+            return -1, -1
+        row = row.iloc[0]
         
-        # Check if the player did not play
-        if "DNP" in row["COMMENT"]:
-            logger.info(f"Player {player_id} did not play in game {game_id}")
+
+        # DNP / inactive?
+        if isinstance(row.get("COMMENT"), str) and "DNP" in row["COMMENT"]:
             return -1, -1
                 
+
         pts = int(row["PTS"]) if row["PTS"] is not None else -1
 
         raw_min = row["MIN"]
         mins = -1
-        if isinstance(raw_min, str) and ":" in raw_min:
-            mins = int(float(str(raw_min).split(".")[0]))
+        if ":" in raw_min:
+            mins = int(raw_min.split(":")[0].split(".")[0])
         
         logger.info(f"Player {player_id} stats: {pts} points, {mins} minutes")
         return pts, mins
@@ -173,19 +173,20 @@ def update_doc(ref, data):
             return False
             
         pts, mins = fetch_player_stats(game_id, player_id)
-        if pts is None:
-            logger.warning(f"Could not fetch stats for player {player_id}")
-            return False
             
         # Determine bet result
-        bet_result = "WIN" if pts > threshold else "LOSS"
+        hit = -1
+        bet_result = "DNP"
+        if pts != -1 and mins != -1:
+            hit = 1 if pts > threshold else 0
+            bet_result = "WIN" if hit == 1 else "LOSS"
         
         update_data = {
             "gameStatus": "Concluded",
             "finalPoints": pts,
             "finalMinutes": mins,
             "bet_result": bet_result,
-            "hit" : 1 if pts > threshold else 0,
+            "hit" : hit,
             "finishedAt": firestore.SERVER_TIMESTAMP
         }
 
@@ -762,18 +763,24 @@ def parse_screenshot_endpoint():
     return jsonify({"status": "ok", "parsedPlayers": parsed}), 200
 
 
-@app.route("/api/player/<player_id>/more_games", methods=["GET"])
-def more_games_endpoint(player_id):
+@app.route("/api/player/<pick_id>/more_games", methods=["GET"])
+def more_games_endpoint():
     """
     Returns the “extra” regular-season games beyond the first 5.
     Optional query-param: ?season=YYYY-YY; otherwise uses current season.
     """
     try:
-        games = player_analyzer.fetch_more_games(player_id)
+        player_id = request.args.get('player_d', '')
+        gameStatus = request.args.get('gameStatus', '')
+        season = request.args.get('season', '')
+        game_id = request.args.get('game_id', '')
+        
+        games = player_analyzer.fetch_more_games(player_id, gameStatus, season, game_id)
         return jsonify(games), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+    
 
 @app.route("/check_games", methods=["POST", "GET"])
 def check_games():

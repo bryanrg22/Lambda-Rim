@@ -171,7 +171,7 @@ def get_team_injury_report(team_name_normalized, db=None):
             "players": [],
             "lastUpdated": firestore.SERVER_TIMESTAMP,
             "lastChecked": firestore.SERVER_TIMESTAMP,
-            "error": str(e)
+            "message": str(e)
         }
 
 def get_all_team_injuries():

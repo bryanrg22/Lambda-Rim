@@ -161,7 +161,18 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
     setLoadingMoreGames(true)
     setMoreGamesError(null)
     try {
-      const res = await fetch(`/api/player/${playerData.playerId}/more_games`)
+
+      const url = new URL(
+        `/api/player/${playerData.pick_id}/more_games`,
+        window.location.origin
+      );
+      url.searchParams.append('player_id', playerData.playerId || '');
+      url.searchParams.append('gameStatus', playerData.gameStatus || '');
+      url.searchParams.append('season', playerData.season || '');
+      url.searchParams.append('game_id', playerData.gameId || '');
+      
+
+      const res = await fetch(url.toString())
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setMoreGames(data)
@@ -401,7 +412,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
               {volatilityForecast && (
                 <div className="bg-gray-800/50 p-2 rounded-lg text-center">
-                  <div className="flex items-center mb-1">
+                  <div className="flex items-center justify-center mb-1">
                     <BarChart3 className="w-3 h-3 text-blue-400 mr-1" />
                     <span className="text-xs text-gray-400">Volatility</span>
                   </div>
