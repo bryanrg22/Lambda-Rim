@@ -138,6 +138,11 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
     playoff_curr_series_score,
     playoff_curr_game_num,
     playoff_points_avg,
+    gameStatus,
+    matchup,
+    teamConference,
+    opponentConference,
+    playoff_minutes_avg
   } = playerData
 
   // Format probabilities for display
@@ -215,7 +220,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                   <ImageWithFallback
                     src={teamLogo || "/placeholder.svg"}
                     alt={team}
-                    className="w-4 h-4 lg:w-6 lg:h-6"
+                    className="w-10 h-4 lg:w-6 lg:h-6"
                     fallbackSrc="/placeholder.svg?height=24&width=24"
                   />
                 </div>
@@ -225,31 +230,18 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg lg:text-2xl font-bold text-white truncate">{name}</h1>
                 <div className="flex items-center text-gray-400 text-xs lg:text-sm">
-                  <span className="truncate">{team}</span>
-                  <span className="mx-1 lg:mx-2">•</span>
-                  <span>{position}</span>
-                  <span className="mx-1 lg:mx-2">•</span>
-                  <span>#{teamPlayoffRank}</span>
+                  <span className="truncate">{"Team: "}{team}</span>
                 </div>
-                <div className="flex items-center mt-1 text-xs text-gray-500">
-                  <span>vs</span>
-                  <ImageWithFallback
-                    src={opponentLogo || "/placeholder.svg"}
-                    alt={opponent}
-                    className="w-3 h-3 mx-1"
-                    fallbackSrc="/placeholder.svg?height=12&width=12"
-                  />
-                  <span className="truncate">
-                    {opponent} (#{opponentPlayoffRank})
-                  </span>
-                  <span className="mx-1">•</span>
-                  <span>{gameDate}</span>
+                <div className="flex items-center text-gray-400 text-xs lg:text-sm">
+                  <span className="truncate">{"Position: "}{position}</span>
                 </div>
                 {/* Game Type & Time */}
                 <div className="flex items-center mt-1 text-xs text-gray-500">
-                  <Clock className="w-3 h-3 mr-1" />
-                  <span>{gameTime}</span>
-                  <span className="mx-1">•</span>
+                <span
+                    className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">
+                    {"Points Over"}
+                  </span>
+                  <span className="mx-1"></span>
                   <span
                     className={`px-2 py-0.5 rounded text-xs ${
                       gameType === "Playoffs" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"
@@ -277,6 +269,131 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
               </div>
             </div>
 
+          </div>
+        </div>
+
+
+        
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-3 lg:p-6 space-y-3 lg:space-y-4">
+
+            {/* Match Info Section */}
+            <div className="mt-3 bg-gray-800/30 rounded-lg p-2 lg:p-3 border border-gray-700">
+              <div className="flex items-center mb-2">
+                <MapPin className="text-purple-400 w-4 h-4 mr-2" />
+                <span className="text-xs lg:text-sm font-medium">Match Info</span>
+              </div>
+              <div className="flex items-center mb-2">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg"
+                alt="NBA Logo"
+                className="w-4 h-4 mr-2"
+              />
+                <span className="text-sm font-bold text-white">{gameDate}</span>
+                <span className="mx-1">•</span>
+                <span className="text-sm font-bold text-white">{gameTime}</span>
+              </div>
+
+
+              {/* Team Logos and Conference Info */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <ImageWithFallback
+                    src={teamLogo || "/placeholder.svg"}
+                    alt={team}
+                    className="w-6 h-6"
+                    fallbackSrc="/placeholder.svg?height=24&width=24"
+                  />
+                  <div className="text-left">
+                    <div className="text-sm font-bold text-white">{team}</div>
+                    <div className="text-xs text-gray-400">
+                      {teamConference} • #{teamPlayoffRank}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-gray-400 font-medium">VS</div>
+                
+                <div className="flex items-center space-x-2">
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-white">{opponent}</div>
+                    <div className="text-xs text-gray-400">
+                      {opponentConference} • #{opponentPlayoffRank}
+                    </div>
+                  </div>
+                  <ImageWithFallback
+                    src={opponentLogo || "/placeholder.svg"}
+                    alt={opponent}
+                    className="w-6 h-6"
+                    fallbackSrc="/placeholder.svg?height=24&width=24"
+                  />
+                </div>
+              </div>
+              
+              {/* Game Context Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
+                {/* Home/Away Status */}
+                <div className="bg-gray-800/50 p-2 rounded-lg text-center">
+                  <div className="text-xs text-gray-400">Location</div>
+                  <div className={`text-sm font-bold ${home_game ? 'text-green-400' : 'text-blue-400'}`}>
+                    {home_game ? 'HOME' : 'AWAY'}
+                  </div>
+                </div>
+                
+                {/* Game Type */}
+                <div className="bg-gray-800/50 p-2 rounded-lg text-center">
+                  <div className="text-xs text-gray-400">Game Type</div>
+                  <div className={`text-sm font-bold ${gameType === 'Playoffs' ? 'text-yellow-400' : 'text-blue-400'}`}>
+                    {gameType || 'Regular'}
+                  </div>
+                </div>
+                
+                {/* Game Status */}
+                <div className="bg-gray-800/50 p-2 rounded-lg text-center">
+                  <div className="text-xs text-gray-400">Status</div>
+                  <div className="text-sm font-bold text-white">
+                    {gameStatus || 'Scheduled'}
+                  </div>
+                </div>
+                
+                {/* Matchup */}
+                <div className="bg-gray-800/50 p-2 rounded-lg text-center">
+                  <div className="text-xs text-gray-400">Matchup</div>
+                  <div className="text-sm font-bold text-white">
+                    {matchup || `${team} vs ${opponent}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Playoff Specific Info - Only show if playoffs */}
+              {gameType === 'Playoffs' && (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                  {playoff_round && (
+                    <div className="text-center">
+                      <div className="text-xs text-yellow-400">Round</div>
+                      <div className="text-sm font-bold text-white">{playoff_round}</div>
+                    </div>
+                  )}
+                  
+                  {playoff_curr_game_num && (
+                    <div className="text-center">
+                      <div className="text-xs text-yellow-400">Game #</div>
+                      <div className="text-sm font-bold text-white">{playoff_curr_game_num}</div>
+                    </div>
+                  )}
+                  
+                  {playoff_curr_series_score && (
+                    <div className="text-center">
+                      <div className="text-xs text-yellow-400">Series Score</div>
+                      <div className="text-sm font-bold text-white">{playoff_curr_series_score}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* AI Recommendation Bar - Compact */}
             <div className="mt-3 bg-gray-800/30 rounded-lg p-2 lg:p-3 border border-gray-700">
               <div className="flex items-center justify-between mb-2">
@@ -299,26 +416,49 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                 {betExplanation.explanation}
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-3 lg:p-6 space-y-3 lg:space-y-4">
             
-            {/* More Player Role Data */}
-            <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
-              <div className="bg-gray-800/50 p-2 rounded-lg text-center">
-                  <div className="text-sm font-bold text-white">
-                    {home_game === true ? "Home Game" : "Away Game"}
+            {/* Playoff Stats Row - Only if playoff data exists */}
+            {playoff_num_games > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
+                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                  <div className="text-xs text-yellow-400">Playoff Point Avg</div>
+                  <div className={`text-sm font-bold ${getComparisonColor(playoff_points_avg, threshold)}`}>
+                    {formatNumber(playoff_points_avg)}
                   </div>
                 </div>
-              <div className="bg-gray-800/50 p-2 rounded-lg text-center">
-                <div className="text-xs text-gray-400">Importance Role</div>
-                <div className="text-sm font-bold text-white">{importanceRole}</div>
+                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                  <div className="text-xs text-yellow-400">Playoff Point Avg - HOME</div>
+                  <div className={`text-sm font-bold ${getComparisonColor(playoff_points_home_avg, threshold)}`}>
+                    {formatNumber(playoff_points_home_avg)}
+                  </div>
+                </div>
+                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                  <div className="text-xs text-yellow-400">Playoff Point Avg - AWAY</div>
+                  <div className={`text-sm font-bold ${getComparisonColor(playoff_points_away_avg, threshold)}`}>
+                    {formatNumber(playoff_points_away_avg)}
+                  </div>
+                </div>
+                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                  <div className="text-xs text-yellow-400">Playoff Minute Avg</div>
+                  <div className="text-sm font-bold text-white">
+                    {formatNumber(playoff_minutes_avg)}
+                  </div>
+                </div>
+                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                  <div className="text-xs text-yellow-400">Playoff Point Under Count</div>
+                  <div className="text-sm font-bold text-white">
+                    {playoff_underCount}
+                  </div>
+                </div>
+                {volatilityPlayOffsForecast && volatilityPlayOffsForecast !== 0 && (
+                  <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
+                    <div className="text-xs text-yellow-400">Playoff Volatility</div>
+                    <div className="text-sm font-bold text-white">{formatNumber(volatilityPlayOffsForecast)}</div>
+                  </div>
+                )}
               </div>
-            </div>
-            
+            )}
+  
             {/* Quick Stats Grid - Utilizing ALL your data */}
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
               <div className="bg-gray-800/50 p-2 rounded-lg text-center">
@@ -366,48 +506,6 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
                 </div>
               </div>
             </div>
-
-            {/* Playoff Stats Row - Only if playoff data exists */}
-            {playoff_num_games > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
-                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                <div className="text-xs text-yellow-400">Current Score</div>
-                <div className="text-sm font-bold text-white">
-                  {playoff_curr_series_score}
-                </div>
-                </div>
-                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                  <div className="text-xs text-yellow-400">Playoff Point Avg</div>
-                  <div className={`text-sm font-bold ${getComparisonColor(playoffAvg, threshold)}`}>
-                    {formatNumber(playoff_points_avg)}
-                  </div>
-                </div>
-                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                  <div className="text-xs text-yellow-400">Playoff Point Avg - HOME</div>
-                  <div className={`text-sm font-bold ${getComparisonColor(playoff_points_home_avg, threshold)}`}>
-                    {formatNumber(playoff_points_home_avg)}
-                  </div>
-                </div>
-                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                  <div className="text-xs text-yellow-400">Playoff Point Avg - AWAY</div>
-                  <div className={`text-sm font-bold ${getComparisonColor(playoff_points_away_avg, threshold)}`}>
-                    {formatNumber(playoff_points_away_avg)}
-                  </div>
-                </div>
-                <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                  <div className="text-xs text-yellow-400">Playoff Point Under Count</div>
-                  <div className="text-sm font-bold text-white">
-                    {playoff_underCount}
-                  </div>
-                </div>
-                {volatilityPlayOffsForecast && volatilityPlayOffsForecast !== 0 && (
-                  <div className="bg-yellow-500/10 p-2 rounded-lg text-center border border-yellow-500/20">
-                    <div className="text-xs text-yellow-400">Playoff Volatility</div>
-                    <div className="text-sm font-bold text-white">{formatNumber(volatilityPlayOffsForecast)}</div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Volatility & Advanced Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
