@@ -333,7 +333,7 @@ const PlayerAnalysisModal = ({ playerData, onClose, onAddToPicks }) => {
               </div>
               
               {/* Game Context Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
+              <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 mb-2">
                 {/* Home/Away Status */}
                 <div className="bg-gray-800/50 p-2 rounded-lg text-center">
                   <div className="text-xs text-gray-400">Location</div>
