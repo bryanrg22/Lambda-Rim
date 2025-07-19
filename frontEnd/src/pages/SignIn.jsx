@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, User, Lock, Shield } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { getUserByUsername, verifyUserPassword, initializeUser, initializeDatabase } from "../services/firebaseService"
+import {
+  getUserByUsername,
+  verifyUserPassword,
+  initializeUser,
+  initializeDatabase,
+  upsertUserFromAuthUser,
+} from "../services/firebaseService"
+import { auth, googleProvider } from "../firebase"
+import { signInWithPopup } from "firebase/auth"
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false)
@@ -69,6 +77,23 @@ export default function SignIn() {
       setLoading(false)
     }
   }
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      const userId = await upsertUserFromAuthUser(cred.user, "google");
+      sessionStorage.setItem("currentUser", userId);
+      navigate("/HomePage");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -177,6 +202,21 @@ export default function SignIn() {
                   </button>
                 </div>
               </form>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl border border-gray-600/50 text-white bg-gray-700/50 hover:bg-gray-600/60 transition-all"
+                  disabled={loading}>
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                    alt="Google Logo"
+                    className="w-5 h-5"
+                  />
+                  Continue with Google
+                </button>
+              </div>
 
               {/* Admin Portal Link */}
               <div className="mt-8 pt-6 border-t border-gray-700/50">

@@ -11,8 +11,9 @@ import {
   writeBatch,
   query,
   orderBy,
+  where,
 } from "firebase/firestore"
-import { db } from "../firebase"
+import { db, auth, googleProvider } from "../firebase"
 
 // ===== HELPER FUNCTIONS FOR DOCUMENT REFERENCES =====
 // Convert any flavour of gameDate into YYYYMMDD for IDs
@@ -256,6 +257,69 @@ const getDocumentReferencePath = (playerData, isActive = true) => {
 
   return `processedPlayers/players/${collection}/${playerId}`
 }
+
+
+/* ---------- FEDERATED‑AUTH HELPERS ---------- */
+// 🔎 quick map: auth UID  ➜  your userId (username)
+export const getUserIdForAuthUid = async (uid) => {
+  const snap = await getDoc(doc(db, "authMap", uid));
+  return snap.exists() ? snap.data().userId : null;
+};
+
+// ↔️ write/refresh the mapping & profile provider blob
+export const linkAuthUidToUser = async (uid, userId, providerKey, authUser) => {
+  await setDoc(doc(db, "authMap", uid), { userId, provider: providerKey }, { merge: true });
+
+  await updateUserProfile(userId, {
+    [`authProviders.${providerKey}`]: {
+      uid,
+      email: authUser.email,
+      displayName: authUser.displayName,
+      photoURL: authUser.photoURL,
+      linkedAt: serverTimestamp(),
+    },
+    email: authUser.email,
+    displayName: authUser.displayName,
+    pfp: authUser.photoURL,
+  });
+};
+
+// 🔑 main entry: call after ANY Firebase‑Auth sign‑in
+export const upsertUserFromAuthUser = async (authUser, providerKey = "google") => {
+  // 1) direct map
+  let userId = await getUserIdForAuthUid(authUser.uid);
+  if (userId) {
+    await updateUserProfile(userId, {}); // bumps lastLogin
+    return userId;
+  }
+
+  // 2) try e‑mail match against legacy docs
+  const email = authUser.email?.toLowerCase();
+  let legacyDoc = null;
+  if (email) {
+    const q = query(collection(db, "users"), where("profile.email", "==", email));
+    const snap = await getDocs(q);
+    if (!snap.empty) legacyDoc = { id: snap.docs[0].id, ...snap.docs[0].data() };
+  }
+
+  if (legacyDoc) {
+    userId = legacyDoc.id; // keep their old username as canonical
+  } else {
+    // 3) brand new → derive a username from email local‑part (ensure uniqueness)
+    const base = email ? email.split("@")[0] : `user_${Date.now()}`;
+    let candidate = base;
+    let i = 0;
+    while ((await getDoc(doc(db, "users", candidate))).exists()) candidate = `${base}${++i}`;
+    userId = candidate;
+    await initializeUser(userId, null); // seeds profile with zeroed metrics
+  }
+
+  // 4) finally link uid→userId and touch lastLogin
+  await linkAuthUidToUser(authUser.uid, userId, providerKey, authUser);
+  return userId;
+};
+
+
 
 // ===== USER PROFILE FUNCTIONS =====
 

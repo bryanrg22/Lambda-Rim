@@ -276,6 +276,9 @@ firestore/
 processedPlayers/players 
 │	├── active/
 │	│   └─ {pick_id} (e.g. aaron_nesmith_7.5_20250619)
+│	│       │
+│	│       ├─ pick_id: string			
+│	│       │ 
 │	│       │  # 1. Identity & Media
 │	│       ├─ name: string
 │	│       ├─ playerId: number
@@ -397,12 +400,16 @@ processedPlayers/players
 │	│       │
 │	│       │  # 8. Playoff Data (only present when gameType == Playoffs)
 │	│       ├─ num_playoff_games: number
+│	│       ├─ playoff_round
 │	│       ├─ playoff_curr_score
+│	│       ├─ playoff_game_number
 │	│       ├─ playoffAvg: number
+│	│       ├─ playoff_minutes_avg
 │	│       ├─ playoff_points_home_avg: number
 │	│       ├─ playoff_points_away_avg: number
 │	│       ├─ playoff_minutes_home_avg: number
 │	│       ├─ playoff_minutes_away_avg: number
+│	│       ├─ playoff_underCount
 │	│       └─ playoff_games: array<map>
 │	│           └─ [
 │	│               { 
