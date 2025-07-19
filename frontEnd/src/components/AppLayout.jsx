@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Home, LogOut, History, Bell, ListChecks, Menu, X } from "lucide-react"
+import { Home, LogOut, History, Bell, ListChecks, Menu, X, PersonStanding} from "lucide-react"
 import { getUserProfile } from "../services/firebaseService"
 
 export default function AppLayout({ children }) {
@@ -122,9 +122,9 @@ export default function AppLayout({ children }) {
       </header>
 
       {/* Desktop Header */}
-      <header className="bg-gray-800 py-4 hidden lg:block">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <header className="bg-gray-800 py-5 hidden lg:block">
+        <div className="container mx-auto px-5 flex items-center justify-between">
+          <div className="flex items-center space-x-5">
             <img
               src="/lambdaRimLogo.png"
               alt="PrizePicks Logo"
@@ -141,7 +141,7 @@ export default function AppLayout({ children }) {
             <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" />
             <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
             <NavItem path="/alerts" icon={Bell} label="Alerts" />
-            <NavItem path="/alerts" icon={Bell} label="Community" mobile />
+            <NavItem path="/community" icon={PersonStanding} label="Community"  />
           </nav>
           <div className="flex items-center space-x-4">
             <img
@@ -204,10 +204,10 @@ export default function AppLayout({ children }) {
               <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" mobile />
               <NavItem path="/previous-bets" icon={History} label="Previous Bets" mobile />
               <NavItem path="/alerts" icon={Bell} label="Alerts" mobile />
-              <NavItem path="/alerts" icon={Bell} label="Community" mobile />
+              <NavItem path="/community" icon={PersonStanding} label="Community" mobile />
             </nav>
 
-            <div className="absolute bottom-4 left-4 right-4">
+            <div className="absolute bottom-5 left-5 right-5">
               <button
                 onClick={handleSignOut}
                 className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg flex items-center justify-center transition-colors"

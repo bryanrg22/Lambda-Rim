@@ -4,6 +4,7 @@ import DashboardPage from "./pages/DashboardPage"
 import ProcessedPlayersPage from "./pages/ProcessedPlayersPage"
 import PreviousBetsPage from "./pages/PreviousBetsPage"
 import AlertsPage from "./pages/AlertsPage"
+import CommunityPage from "./pages/CommunityPage"
 import AdminLogin from "./pages/AdminLogin"
 import AdminDashboard from "./pages/AdminDashboard"
 
@@ -15,6 +16,7 @@ const App = () => (
       <Route path="/processed-players" element={<ProcessedPlayersPage />} />
       <Route path="/previous-bets" element={<PreviousBetsPage />} />
       <Route path="/alerts" element={<AlertsPage />} />
+      <Route path="/community" element={<CommunityPage/>} />
       <Route path="/HomePage" element={<DashboardPage />} />
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />

@@ -52,6 +52,7 @@ export default function MobileLayout({ children }) {
             <NavItem path="/processed-players" icon={Users} label="Already Processed Players" />
             <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
             <NavItem path="/alerts" icon={Bell} label="Alerts" />
+            <NavItem path="/community" icon={PersonStanding} label="Community" />
           </nav>
         </div>
 
@@ -64,6 +65,7 @@ export default function MobileLayout({ children }) {
                 <NavItem path="/processed-players" icon={Users} label="Already Processed Players" />
                 <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
                 <NavItem path="/alerts" icon={Bell} label="Alerts" />
+                <NavItem path="/community" icon={PersonStanding} label="Community" />
               </nav>
             </div>
           </div>
