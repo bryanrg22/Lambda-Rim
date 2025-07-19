@@ -119,7 +119,12 @@ function TwitchPlayer({ channel, viewerCount = Math.floor(Math.random() * 5000) 
             className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            <span>Watch on Twitch</span>
+            <span>Watch on</span>
+            <img
+                src="https://upload.wikimedia.org/wikipedia/commons/c/ce/Twitch_logo_2019.svg"
+                alt="Twitch Logo"
+                className="w-12 h-12 mr-10"
+            />
           </a>
         </div>
       </div>
@@ -209,7 +214,12 @@ function KickPlayer({ username, viewerCount = Math.floor(Math.random() * 3000) +
             className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            <span>Watch on Kick</span>
+            <span>Watch on</span>
+            <img
+                src="https://upload.wikimedia.org/wikipedia/commons/d/dd/Kick_logo.svg"
+                alt="Kick Logo"
+                className="w-12 h-12 mr-10"
+            />
           </a>
         </div>
       </div>
@@ -267,7 +277,11 @@ function TikTokEmbed({ url, id, creator, timestamp }) {
               <p className="text-xs text-gray-400">{timestamp}</p>
             </div>
           </div>
-          <span className="bg-pink-600 text-white px-2 py-1 rounded-md text-xs font-medium">TikTok</span>
+          <img
+            src="https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg"
+            alt="TikTok Logo"
+            className="w-20 h-20 mr-2"
+        />
         </div>
       </div>
 
@@ -530,6 +544,38 @@ export default function CommunityPage() {
           </div>
         </div>
 
+        {/* Creator Spotlight Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold text-white">Top Betting Creators</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => scrollCreators("left")}
+                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-400" />
+              </button>
+              <button
+                onClick={() => scrollCreators("right")}
+                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontal Scrollable Creator Cards */}
+          <div
+            ref={creatorScrollRef}
+            className="flex space-x-6 overflow-x-auto scrollbar-hide pb-4"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {topCreators.map((creator) => (
+              <CreatorCard key={creator.id} creator={creator} />
+            ))}
+          </div>
+        </div>
+
         {/* Live Streams Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -580,38 +626,6 @@ export default function CommunityPage() {
                   <KickPlayer username={stream.channel} />
                 )}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Creator Spotlight Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-white">Top Betting Creators</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => scrollCreators("left")}
-                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-400" />
-              </button>
-              <button
-                onClick={() => scrollCreators("right")}
-                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Horizontal Scrollable Creator Cards */}
-          <div
-            ref={creatorScrollRef}
-            className="flex space-x-6 overflow-x-auto scrollbar-hide pb-4"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {topCreators.map((creator) => (
-              <CreatorCard key={creator.id} creator={creator} />
             ))}
           </div>
         </div>
