@@ -13,7 +13,15 @@ import {
   orderBy,
   where,
 } from "firebase/firestore"
-import { db, auth, googleProvider } from "../firebase"
+import { db, auth, googleProvider, microsoftProvider } from "../firebase"
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  EmailAuthProvider,
+  OAuthProvider,
+} from "firebase/auth"
 
 // ===== HELPER FUNCTIONS FOR DOCUMENT REFERENCES =====
 // Convert any flavour of gameDate into YYYYMMDD for IDs
@@ -270,26 +278,37 @@ export const getUserIdForAuthUid = async (uid) => {
 export const linkAuthUidToUser = async (uid, userId, providerKey, authUser) => {
   await setDoc(doc(db, "authMap", uid), { userId, provider: providerKey }, { merge: true });
 
-  await updateUserProfile(userId, {
-    [`authProviders.${providerKey}`]: {
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    [`profile.authProviders.${providerKey}`]: {
       uid,
       email: authUser.email,
       displayName: authUser.displayName,
       photoURL: authUser.photoURL,
       linkedAt: serverTimestamp(),
     },
-    email: authUser.email,
-    displayName: authUser.displayName,
-    pfp: authUser.photoURL,
+    "profile.email":        authUser.email,
+    "profile.displayName":  authUser.displayName,
+    "profile.pfp":          authUser.photoURL,
+    "profile.lastLogin":    serverTimestamp(),
   });
 };
 
 // 🔑 main entry: call after ANY Firebase‑Auth sign‑in
-export const upsertUserFromAuthUser = async (authUser, providerKey = "google") => {
+/**
+ * Ensure a Firestore profile exists & is updated for a Firebase Auth user.
+ * @param {FirebaseUser} authUser
+ * @param {string} providerKey  e.g. "google" | "microsoft" | "password"
+ * @param {object} [opts]
+ * @param {string} [opts.desiredUsername]  preferred handle to use if creating a brand-new doc
+ */
+export const upsertUserFromAuthUser = async (authUser, providerKey = "google", opts = {}) => {
   // 1) direct map
   let userId = await getUserIdForAuthUid(authUser.uid);
   if (userId) {
-    await updateUserProfile(userId, {}); // bumps lastLogin
+    await updateDoc(doc(db, "users", userId), {
+      "profile.lastLogin": serverTimestamp(),
+    });
     return userId;
   }
 
@@ -305,19 +324,109 @@ export const upsertUserFromAuthUser = async (authUser, providerKey = "google") =
   if (legacyDoc) {
     userId = legacyDoc.id; // keep their old username as canonical
   } else {
-    // 3) brand new → derive a username from email local‑part (ensure uniqueness)
-    const base = email ? email.split("@")[0] : `user_${Date.now()}`;
+    // 3) brand new → choose username
+    const base =
+      opts.desiredUsername?.trim() ||
+      (email ? email.split("@")[0] : authUser.displayName?.replace(/\s+/g, "").toLowerCase()) ||
+      `user_${Date.now()}`;
     let candidate = base;
     let i = 0;
     while ((await getDoc(doc(db, "users", candidate))).exists()) candidate = `${base}${++i}`;
     userId = candidate;
-    await initializeUser(userId, null); // seeds profile with zeroed metrics
+    await initializeUser(userId, null); // seeds profile (password null OK)
   }
 
   // 4) finally link uid→userId and touch lastLogin
   await linkAuthUidToUser(authUser.uid, userId, providerKey, authUser);
   return userId;
 };
+
+
+/* ---------- EMAIL / PASSWORD AUTH HELPERS ---------- */
+
+/**
+ * Create a Firebase Auth user (email/password) and seed Firestore profile.
+ * desiredUsername: if omitted, we'll derive from email local-part.
+ */
+export const emailSignUp = async (email, password, desiredUsername) => {
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const userId = await upsertUserFromAuthUser(cred.user, "password", { desiredUsername });
+  return { authUser: cred.user, userId };
+};
+
+/**
+ * Sign in an existing Firebase Auth email/password user.
+ * (If this user doesn't have a Firestore profile yet, we'll create it.)
+ */
+export const emailSignIn = async (email, password) => {
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const userId = await upsertUserFromAuthUser(cred.user, "password");
+  return { authUser: cred.user, userId };
+};
+
+
+/**
+ * Attempt to sign in with an Auth provider. If Firebase says
+ * "account-exists-with-different-credential", auto-resolve by signing in
+ * with the existing provider, then linking the pending one.
+ *
+ * @param {firebase.auth.AuthProvider} provider    provider instance (googleProvider, microsoftProvider, apple, etc.)
+ * @param {string} providerKey                     key string to store in profile.authProviders
+ * @param {function} [promptForEmailPassword]      async (email) => {email,password}  (only used if existing method is "password")
+ * @returns {string} userId (Firestore)
+ */
+export const signInWithProviderAndLink = async (provider, providerKey, promptForEmailPassword) => {
+  try {
+    const cred = await signInWithPopup(auth, provider);
+    const userId = await upsertUserFromAuthUser(cred.user, providerKey);
+    return userId;
+  } catch (err) {
+    if (err.code !== "auth/account-exists-with-different-credential") {
+      throw err;
+    }
+
+    // Pending credential from failed sign-in
+    const pendingCred =
+      EmailAuthProvider.credentialFromError?.(err) ||
+      OAuthProvider.credentialFromError?.(err) ||
+      null;
+
+    const email = err.customData?.email;
+    if (!email) throw err; // no email to reconcile
+
+    const methods = await fetchSignInMethodsForEmail(auth, email);
+
+    // Decide which existing provider to use to finish sign-in
+    let existingCredUser = null;
+
+    if (methods.includes("google.com")) {
+      const res = await signInWithPopup(auth, googleProvider);
+      existingCredUser = res.user;
+    } else if (methods.includes("microsoft.com")) {
+      const res = await signInWithPopup(auth, microsoftProvider);
+      existingCredUser = res.user;
+    } else if (methods.includes("password")) {
+      if (!promptForEmailPassword) {
+        throw new Error("Existing account uses email/password. Please sign in with email first to link.");
+      }
+      const { password } = await promptForEmailPassword(email);
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      existingCredUser = res.user;
+    } else {
+      throw err;
+    }
+
+    // Link the *pending* credential (the one that failed) to the signed-in user
+    if (pendingCred) {
+      await linkWithCredential(existingCredUser, pendingCred);
+    }
+
+    // Mark the new provider in Firestore
+    const userId = await upsertUserFromAuthUser(existingCredUser, providerKey);
+    return userId;
+  }
+};
+
 
 
 
@@ -429,9 +538,12 @@ export const updateUserProfile = async (userId, profileData) => {
 
       if (userData.profile) {
         // New structure - update profile object
-        await updateDoc(userRef, {
-          profile: { ...profileData, lastLogin: serverTimestamp() },
-        })
+        const merged = {
+          ...userData.profile,
+          ...profileData,
+          lastLogin: serverTimestamp(),
+        }
+        await updateDoc(userRef, { profile: merged })
       } else {
         // Old structure - update fields directly
         await updateDoc(userRef, {
@@ -1192,12 +1304,6 @@ export const initializeDatabase = async (userId) => {
         picks: [], // Initialize as empty array for document references
       })
 
-      // Initialize daily picks
-      const today = new Date().toISOString().split("T")[0]
-      await setDoc(doc(db, "users", userId, "dailyPicks", today), {
-        picks: [],
-      })
-
       console.log("User initialized successfully")
     } else {
       // Check if user has profile object
@@ -1206,7 +1312,7 @@ export const initializeDatabase = async (userId) => {
         // Migrate user to new structure
         const profile = {
           username: userId,
-          password: userData.password || "ramirez22",
+          password: userData.password,
           email: `${userId}@example.com`,
           displayName: userData.displayName || userId,
           createdAt: serverTimestamp(),
@@ -1264,11 +1370,6 @@ export const initializeUser = async (username, password) => {
         bets: [],
       })
 
-      // Initialize daily picks
-      const today = new Date().toISOString().split("T")[0]
-      await setDoc(doc(db, "users", username, "dailyPicks", today), {
-        picks: [],
-      })
     } else {
       // Check if user has profile object
       const userData = userSnap.data()

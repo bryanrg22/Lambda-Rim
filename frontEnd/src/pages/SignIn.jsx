@@ -9,9 +9,12 @@ import {
   initializeUser,
   initializeDatabase,
   upsertUserFromAuthUser,
+  emailSignIn,
+  emailSignUp,
+  signInWithProviderAndLink,
 } from "../services/firebaseService"
-import { auth, googleProvider } from "../firebase"
-import { signInWithPopup } from "firebase/auth"
+import { auth, googleProvider, microsoftProvider } from "../firebase"
+import { signInWithPopup } from "firebase/auth" // still used in legacy path fallback
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false)
@@ -35,39 +38,53 @@ export default function SignIn() {
     initDB()
   }, [])
 
+
+  const [useEmail, setUseEmail] = useState(false);        // toggle between legacy username vs email login
+  const [isNew, setIsNew] = useState(false);              // email sign-up vs sign-in
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
     try {
-      // For debugging - log the username and password
-      console.log("Attempting login with:", username, password)
+      // Detect email vs legacy username
+      const isEmail = username.includes("@");
 
-      // Check if user exists in Firestore
-      const userData = await getUserByUsername(username)
-      console.log("User data:", userData)
-
-      if (!userData) {
-        setError("No account found with this username.")
-        setLoading(false)
-        return
+      if (isEmail) {
+        // Try email sign-in; if user doesn't exist, create
+        try {
+          const { userId } = await emailSignIn(username, password);
+          sessionStorage.setItem("currentUser", userId);
+        } catch (err) {
+          if (err.code === "auth/user-not-found") {
+            // Auto-create account
+            const { userId } = await emailSignUp(username, password);
+            sessionStorage.setItem("currentUser", userId);
+          } else if (err.code === "auth/wrong-password") {
+            setError("Incorrect password.");
+            return;
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        // Legacy username/password path (unchanged)
+        console.log("Attempting legacy login with:", username, password)
+        const userData = await getUserByUsername(username)
+        console.log("User data:", userData)
+        if (!userData) {
+          setError("No account found with this username.")
+          return
+        }
+        if (!verifyUserPassword(userData, password)) {
+          setError("Incorrect password.")
+          return
+        }
+        await initializeUser(username, password)
+        sessionStorage.setItem("currentUser", username)
       }
 
-      // Check if password matches (handles both old and new structure)
-      if (!verifyUserPassword(userData, password)) {
-        setError("Incorrect password.")
-        setLoading(false)
-        return
-      }
-
-      // Initialize user if needed (this will migrate to new structure if needed)
-      await initializeUser(username, password)
-
-      // Store username in sessionStorage for use across the app
-      sessionStorage.setItem("currentUser", username)
-
-      // Login successful
       console.log("Login successful, navigating to HomePage")
       navigate("/HomePage")
     } catch (error) {
@@ -79,11 +96,13 @@ export default function SignIn() {
   }
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
-      const cred = await signInWithPopup(auth, googleProvider);
-      const userId = await upsertUserFromAuthUser(cred.user, "google");
+      const userId = await signInWithProviderAndLink(googleProvider, "google", async (email) => {
+        // TEMP quick password prompt for testing linking to email accounts
+        const pw = window.prompt(`Enter password for ${email} to link your accounts:`);
+        return { password: pw };
+      });
       sessionStorage.setItem("currentUser", userId);
       navigate("/HomePage");
     } catch (err) {
@@ -93,6 +112,24 @@ export default function SignIn() {
       setLoading(false);
     }
   };
+
+  const handleMicrosoftSignIn = async () => {
+    setLoading(true); setError("");
+    try {
+      const userId = await signInWithProviderAndLink(microsoftProvider, "microsoft", async (email) => {
+        const pw = window.prompt(`Enter password for ${email} to link your accounts:`);
+        return { password: pw };
+      });
+      sessionStorage.setItem("currentUser", userId);
+      navigate("/HomePage");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   
 
   return (
@@ -151,7 +188,7 @@ export default function SignIn() {
                     type="text"
                     required
                     className="block w-full pl-12 pr-4 py-4 border border-gray-600/50 rounded-xl leading-5 bg-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 backdrop-blur-sm"
-                    placeholder="Username"
+                    placeholder="Email or Username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
@@ -215,6 +252,21 @@ export default function SignIn() {
                     className="w-5 h-5"
                   />
                   Continue with Google
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleMicrosoftSignIn}
+                  className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl border border-gray-600/50 text-white bg-gray-700/50 hover:bg-gray-600/60 transition-all"
+                  disabled={loading}>
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg"
+                    alt="Microsoft logo"
+                    className="w-5 h-5"
+                  />
+                  Continue with Microsoft
                 </button>
               </div>
 
