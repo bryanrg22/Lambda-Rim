@@ -14,14 +14,15 @@ import {
   where,
 } from "firebase/firestore"
 import { db, auth, googleProvider, microsoftProvider } from "../firebase"
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
-  linkWithCredential,
-  EmailAuthProvider,
-  OAuthProvider,
-} from "firebase/auth"
+import { createUserWithEmailAndPassword,
+        linkWithPopup,
+        signInWithEmailAndPassword,
+        linkWithCredential,
+        EmailAuthProvider,
+        fetchSignInMethodsForEmail,
+        signInWithPopup,
+        OAuthProvider
+} from "firebase/auth";
 
 // ===== HELPER FUNCTIONS FOR DOCUMENT REFERENCES =====
 // Convert any flavour of gameDate into YYYYMMDD for IDs
@@ -366,64 +367,70 @@ export const emailSignIn = async (email, password) => {
 
 
 /**
- * Attempt to sign in with an Auth provider. If Firebase says
- * "account-exists-with-different-credential", auto-resolve by signing in
- * with the existing provider, then linking the pending one.
+ * Sign in with a provider and, if the e‑mail already exists under a different
+ * credential, automatically link them (“Pattern A”).
  *
- * @param {firebase.auth.AuthProvider} provider    provider instance (googleProvider, microsoftProvider, apple, etc.)
- * @param {string} providerKey                     key string to store in profile.authProviders
- * @param {function} [promptForEmailPassword]      async (email) => {email,password}  (only used if existing method is "password")
- * @returns {string} userId (Firestore)
+ * Works even if auth.currentUser is already logged in.
+ *
+ * @param {AuthProvider} provider       e.g. googleProvider
+ * @param {string}       providerKey    "google" | "microsoft" | "apple"
+ * @param {Function?}    promptForPw    async (email) => password   (only for password collisions)
+ * @returns {string} userId             Firestore userId
  */
-export const signInWithProviderAndLink = async (provider, providerKey, promptForEmailPassword) => {
-  try {
-    const cred = await signInWithPopup(auth, provider);
-    const userId = await upsertUserFromAuthUser(cred.user, providerKey);
-    return userId;
-  } catch (err) {
-    if (err.code !== "auth/account-exists-with-different-credential") {
-      throw err;
+export const signInWithProviderAndLink = async (provider, providerKey, promptForPw) => {
+  // 🚩 Case 0: user is already signed‑in → link directly.
+  if (auth.currentUser) {
+    try {
+      await linkWithPopup(auth.currentUser, provider);          // adds new provider
+    } catch (err) {
+      if (err.code !== "auth/credential-already-in-use") throw err;
+      // already linked – ignore
     }
+    return await upsertUserFromAuthUser(auth.currentUser, providerKey);
+  }
 
-    // Pending credential from failed sign-in
+  /* --------------- Normal sign‑in flow --------------- */
+  try {
+    const cred  = await signInWithPopup(auth, provider);        // happy path
+    return await upsertUserFromAuthUser(cred.user, providerKey);
+
+  } catch (err) {
+    if (err.code !== "auth/account-exists-with-different-credential") throw err;
+
     const pendingCred =
+      OAuthProvider.credentialFromError(err) ||
       EmailAuthProvider.credentialFromError?.(err) ||
-      OAuthProvider.credentialFromError?.(err) ||
       null;
 
     const email = err.customData?.email;
-    if (!email) throw err; // no email to reconcile
+    if (!email) throw err;
 
     const methods = await fetchSignInMethodsForEmail(auth, email);
+    console.log("Collision for", email, "existing methods:", methods);
 
-    // Decide which existing provider to use to finish sign-in
-    let existingCredUser = null;
+    let primaryUser;
 
     if (methods.includes("google.com")) {
-      const res = await signInWithPopup(auth, googleProvider);
-      existingCredUser = res.user;
+      primaryUser = (await signInWithPopup(auth, googleProvider)).user;
+
     } else if (methods.includes("microsoft.com")) {
-      const res = await signInWithPopup(auth, microsoftProvider);
-      existingCredUser = res.user;
+      primaryUser = (await signInWithPopup(auth, microsoftProvider)).user;
+
     } else if (methods.includes("password")) {
-      if (!promptForEmailPassword) {
-        throw new Error("Existing account uses email/password. Please sign in with email first to link.");
-      }
-      const { password } = await promptForEmailPassword(email);
-      const res = await signInWithEmailAndPassword(auth, email, password);
-      existingCredUser = res.user;
+      if (!promptForPw) throw new Error("Account uses e‑mail/password; sign in with e‑mail first.");
+      const pw       = await promptForPw(email);
+      primaryUser    = (await signInWithEmailAndPassword(auth, email, pw)).user;
+
     } else {
-      throw err;
+      throw new Error(`Existing provider (${methods.join(",")}) not supported yet.`);
     }
 
-    // Link the *pending* credential (the one that failed) to the signed-in user
     if (pendingCred) {
-      await linkWithCredential(existingCredUser, pendingCred);
+      // Link the Microsoft (or Google) credential we originally tried
+      await linkWithCredential(primaryUser, pendingCred);
     }
 
-    // Mark the new provider in Firestore
-    const userId = await upsertUserFromAuthUser(existingCredUser, providerKey);
-    return userId;
+    return await upsertUserFromAuthUser(primaryUser, providerKey);
   }
 };
 

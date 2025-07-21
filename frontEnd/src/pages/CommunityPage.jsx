@@ -17,7 +17,7 @@ import AppLayout from "../components/AppLayout"
 /* -----------------------------------------------------------
 1️⃣  List every Twitch channel you want to show
 ----------------------------------------------------------- */
-const twitchChannels = ["jasontheween", "ddg", "jaycincoo5", "yurnboi"]
+const twitchChannels = ["plaqueboymax", "adapt", "fanum", "yurnboi"]
 
 /* -----------------------------------------------------------
    Single‑player wrapper (one per channel)

@@ -24,21 +24,7 @@ export default function SignIn() {
   const [error, setError] = useState("")
   const navigate = useNavigate()
 
-  // Initialize database on component mount (only runs once)
-  useEffect(() => {
-    const initDB = async () => {
-      try {
-        // Initialize database for bryanram user
-        await initializeDatabase("bryanram")
-      } catch (error) {
-        console.error("Error initializing database:", error)
-      }
-    }
-
-    initDB()
-  }, [])
-
-
+  
   const [useEmail, setUseEmail] = useState(false);        // toggle between legacy username vs email login
   const [isNew, setIsNew] = useState(false);              // email sign-up vs sign-in
 
@@ -159,6 +145,8 @@ export default function SignIn() {
           <p className="text-xl text-gray-300 font-medium">Because 99% ain't a free throw</p>
         </div>
 
+        
+
         {/* Sign In Card */}
         <div className="w-full max-w-md">
           <div className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
@@ -167,6 +155,8 @@ export default function SignIn() {
               <h2 className="text-2xl font-bold text-white text-center mb-2">Welcome Back</h2>
               <p className="text-gray-400 text-center text-sm">Sign in to access your dashboard</p>
             </div>
+
+            
 
             {/* Form */}
             <div className="px-8 pb-8">
