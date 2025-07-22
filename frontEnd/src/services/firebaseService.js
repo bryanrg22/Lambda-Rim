@@ -21,7 +21,9 @@ import { createUserWithEmailAndPassword,
         EmailAuthProvider,
         fetchSignInMethodsForEmail,
         signInWithPopup,
-        OAuthProvider
+        OAuthProvider,
+        sendEmailVerification,
+        signOut,
 } from "firebase/auth";
 
 // ===== HELPER FUNCTIONS FOR DOCUMENT REFERENCES =====
@@ -349,10 +351,18 @@ export const upsertUserFromAuthUser = async (authUser, providerKey = "google", o
  * Create a Firebase Auth user (email/password) and seed Firestore profile.
  * desiredUsername: if omitted, we'll derive from email local-part.
  */
-export const emailSignUp = async (email, password, desiredUsername) => {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  const userId = await upsertUserFromAuthUser(cred.user, "password", { desiredUsername });
-  return { authUser: cred.user, userId };
+export const emailSignUp = async (email, password) => {
+  const emailNorm = email.trim().toLowerCase();
+  const cred = await createUserWithEmailAndPassword(auth, emailNorm, password);
+
+  await upsertUserFromAuthUser(cred.user, "password"); // create Firestore profile
+
+  /* 🚀 send verification, then log them out until they confirm */
+  await sendEmailVerification(cred.user);
+  await signOut(auth);
+
+  const userId = await getUserIdForAuthUid(cred.user.uid);
+  return { user: cred.user, verificationSent: true, userId };
 };
 
 /**
@@ -360,9 +370,18 @@ export const emailSignUp = async (email, password, desiredUsername) => {
  * (If this user doesn't have a Firestore profile yet, we'll create it.)
  */
 export const emailSignIn = async (email, password) => {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const emailNorm = email.trim().toLowerCase();
+  const cred = await signInWithEmailAndPassword(auth, emailNorm, password);
+  if (!cred.user.emailVerified) {
+     // immediately sign out to avoid issuing a session
+    await signOut(auth);
+    const err = new Error("unverified");
+    err.code = "auth/email-not-verified";
+    throw err;
+  }
+
   const userId = await upsertUserFromAuthUser(cred.user, "password");
-  return { authUser: cred.user, userId };
+  return { user: cred.user, userId };
 };
 
 
@@ -374,19 +393,22 @@ export const emailSignIn = async (email, password) => {
  *
  * @param {AuthProvider} provider       e.g. googleProvider
  * @param {string}       providerKey    "google" | "microsoft" | "apple"
- * @param {Function?}    promptForPw    async (email) => password   (only for password collisions)
+ * @param {Function?}    promptForPw    async (email) => stringPassword
  * @returns {string} userId             Firestore userId
  */
 export const signInWithProviderAndLink = async (provider, providerKey, promptForPw) => {
   // 🚩 Case 0: user is already signed‑in → link directly.
   if (auth.currentUser) {
-    try {
-      await linkWithPopup(auth.currentUser, provider);          // adds new provider
-    } catch (err) {
-      if (err.code !== "auth/credential-already-in-use") throw err;
-      // already linked – ignore
-    }
-    return await upsertUserFromAuthUser(auth.currentUser, providerKey);
+    if (window.confirm(`Link ${providerKey} to your account ${auth.currentUser.email}?`)) {
+        try {
+          await linkWithPopup(auth.currentUser, provider);
+        } catch (err) {
+          if (err.code !== "auth/credential-already-in-use") throw err;
+        }
+        return await upsertUserFromAuthUser(auth.currentUser, providerKey);
+      } else {
+        throw new Error("link-cancelled");
+      }
   }
 
   /* --------------- Normal sign‑in flow --------------- */
@@ -427,6 +449,8 @@ export const signInWithProviderAndLink = async (provider, providerKey, promptFor
 
     if (pendingCred) {
       // Link the Microsoft (or Google) credential we originally tried
+      const ok = window.confirm(`Link ${providerKey} to your existing account ${primaryUser.email}?`);
+      if (!ok) throw new Error("link-cancelled");
       await linkWithCredential(primaryUser, pendingCred);
     }
 
@@ -434,7 +458,32 @@ export const signInWithProviderAndLink = async (provider, providerKey, promptFor
   }
 };
 
+export const humanMessage = (code) => {
+  switch (code) {
+    /* sign‑in errors */
+    case "auth/user-not-found":
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      return "Incorrect e‑mail or password.";
 
+    /* sign‑up errors */
+    case "auth/email-already-in-use":
+      return "That e‑mail is already registered. Use Sign In instead.";
+
+    case "link-cancelled":
+      return "Linking cancelled.";
+
+    case "auth/account-exists-with-other-provider":
+      return "That e‑mail is linked to a social login. Use Google or Microsoft to sign in.";
+        
+    /* throttling */
+    case "auth/too-many-requests":
+      return "Too many attempts. Please wait a bit and try again.";
+
+    default:
+      return "Oops – " + code.replace("auth/", "").replace(/-/g, " ");
+  }
+};
 
 
 // ===== USER PROFILE FUNCTIONS =====

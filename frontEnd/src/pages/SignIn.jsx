@@ -1,99 +1,107 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Eye, EyeOff, User, Lock, Shield } from "lucide-react"
+import { Eye, EyeOff, User, Lock, Shield } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
 import {
-  getUserByUsername,
-  verifyUserPassword,
-  initializeUser,
-  initializeDatabase,
-  upsertUserFromAuthUser,
   emailSignIn,
   emailSignUp,
   signInWithProviderAndLink,
+  humanMessage,
 } from "../services/firebaseService"
 import { auth, googleProvider, microsoftProvider } from "../firebase"
-import { signInWithPopup } from "firebase/auth" // still used in legacy path fallback
+import { signInWithPopup,
+         signInWithEmailAndPassword,
+         sendEmailVerification,
+         signOut
+ } from "firebase/auth" 
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false)
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")     
+  const [showResend, setShowResend] = useState(false)
   const navigate = useNavigate()
 
   
   const [useEmail, setUseEmail] = useState(false);        // toggle between legacy username vs email login
   const [isNew, setIsNew] = useState(false);              // email sign-up vs sign-in
 
+  const [isCreateMode, setIsCreateMode] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState("")
+
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
-
-    try {
-      // Detect email vs legacy username
-      const isEmail = username.includes("@");
-
-      if (isEmail) {
-        // Try email sign-in; if user doesn't exist, create
-        try {
-          const { userId } = await emailSignIn(username, password);
-          sessionStorage.setItem("currentUser", userId);
-        } catch (err) {
-          if (err.code === "auth/user-not-found") {
-            // Auto-create account
-            const { userId } = await emailSignUp(username, password);
-            sessionStorage.setItem("currentUser", userId);
-          } else if (err.code === "auth/wrong-password") {
-            setError("Incorrect password.");
-            return;
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        // Legacy username/password path (unchanged)
-        console.log("Attempting legacy login with:", username, password)
-        const userData = await getUserByUsername(username)
-        console.log("User data:", userData)
-        if (!userData) {
-          setError("No account found with this username.")
-          return
-        }
-        if (!verifyUserPassword(userData, password)) {
-          setError("Incorrect password.")
-          return
-        }
-        await initializeUser(username, password)
-        sessionStorage.setItem("currentUser", username)
-      }
-
-      console.log("Login successful, navigating to HomePage")
-      navigate("/HomePage")
-    } catch (error) {
-      console.error("Error during authentication:", error)
-      setError(`Authentication error: ${error.message}`)
-    } finally {
-      setLoading(false)
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+  
+    // 1‑A validate “create account” form
+    if (isCreateMode && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
     }
-  }
+  
+    try {
+      const isEmail = email.includes("@");
+  
+      if (isEmail) {
+        /* ---------- E‑mail path ---------- */
+        if (isCreateMode) {
+          /* sign‑up */
+          const { verificationSent } = await emailSignUp(email, password);
+
+          if (verificationSent) {
+           setSuccess("Verification e‑mail sent. Please check your inbox. It may appear in your spam folder.");
+           setIsCreateMode(false);
+           setShowResend(true);
+          }
+        } else {
+          /* sign‑in */
+          const { userId } = await emailSignIn(email, password);
+          sessionStorage.setItem("currentUser", userId);
+          navigate("/HomePage");
+        }
+  
+      } else {
+        /* ---------- legacy username path ---------- */
+        const userData = await getUserByUsername(email);      // email var still contains username
+        if (!userData) { setError("No account with that username."); return; }
+        if (!verifyUserPassword(userData, password)) { setError("Incorrect password."); return; }
+        await initializeUser(email, password);
+        sessionStorage.setItem("currentUser", email);
+        navigate("/HomePage");
+      }
+  
+  
+    } catch (err) {
+      const code = err.code ?? err.message;
+      if (code === "auth/email-not-verified") {
+        setError("Please verify your e‑mail first.");
+        setShowResend(true);
+      } else {
+        setError(humanMessage(code));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   const handleGoogleSignIn = async () => {
     setLoading(true); setError("");
     try {
       const userId = await signInWithProviderAndLink(googleProvider, "google", async (email) => {
         // TEMP quick password prompt for testing linking to email accounts
-        const pw = window.prompt(`Enter password for ${email} to link your accounts:`);
-        return { password: pw };
+        return window.prompt(`Enter password for ${email} to link your accounts:`);
       });
       sessionStorage.setItem("currentUser", userId);
       navigate("/HomePage");
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      setError(humanMessage(err.code ?? err.message));
     } finally {
       setLoading(false);
     }
@@ -103,19 +111,38 @@ export default function SignIn() {
     setLoading(true); setError("");
     try {
       const userId = await signInWithProviderAndLink(microsoftProvider, "microsoft", async (email) => {
-        const pw = window.prompt(`Enter password for ${email} to link your accounts:`);
-        return { password: pw };
+        return window.prompt(`Enter password for ${email} to link your accounts:`); 
       });
       sessionStorage.setItem("currentUser", userId);
       navigate("/HomePage");
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      setError(humanMessage(err.code ?? err.message));
     } finally {
       setLoading(false);
     }
   };
-  
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      // sign in (works even if e‑mail unverified)
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        email.trim().toLowerCase(),
+        password
+      );
+      await sendEmailVerification(cred.user);
+      await signOut(auth);                     // keep session clean
+      setSuccess("Verification e‑mail resent! Check your inbox.");
+      setShowResend(false);
+    } catch (err) {
+      setError(humanMessage(err.code ?? err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
   
 
   return (
@@ -152,14 +179,50 @@ export default function SignIn() {
           <div className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
             {/* Card Header */}
             <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
-              <h2 className="text-2xl font-bold text-white text-center mb-2">Welcome Back</h2>
-              <p className="text-gray-400 text-center text-sm">Sign in to access your dashboard</p>
+              <div className="flex justify-center mb-4">
+                <div className="bg-gray-700/50 rounded-xl p-1 flex">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateMode(false)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      !isCreateMode
+                        ? 'bg-orange-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateMode(true)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isCreateMode
+                        ? 'bg-orange-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-white text-center mb-2">
+                {isCreateMode ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-gray-400 text-center text-sm">
+                {isCreateMode ? 'Create your account to get started' : 'Sign in to access your dashboard'}
+              </p>
             </div>
 
             
 
             {/* Form */}
             <div className="px-8 pb-8">
+              {/* ✅ success banner — ADD THIS FIRST */}
+              {success && (
+                <div className="mb-6 p-4 bg-green-900/30 border border-green-700/50 rounded-xl">
+                  <p className="text-green-300 text-sm text-center">{success}</p>
+                </div>
+              )}
               {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl">
                   <p className="text-red-300 text-sm text-center">{error}</p>
@@ -168,19 +231,17 @@ export default function SignIn() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="relative">
-                  <label htmlFor="username" className="sr-only">
-                    Username
-                  </label>
+                  <label htmlFor="email" className="sr-only">E‑mail or Username</label>
                   <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
-                    id="username"
-                    name="username"
+                    id="email"
+                    name="email"
                     type="text"
                     required
                     className="block w-full pl-12 pr-4 py-4 border border-gray-600/50 rounded-xl leading-5 bg-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 backdrop-blur-sm"
-                    placeholder="Email or Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder={isCreateMode ? "Email Address" : "Email or Username"}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -212,6 +273,40 @@ export default function SignIn() {
                   </button>
                 </div>
 
+                {isCreateMode && (
+                  <div className="relative">
+                    <label htmlFor="confirmPassword" className="sr-only">
+                      Confirm Password
+                    </label>
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      required={isCreateMode}
+                      className="block w-full pl-12 pr-12 py-4 border border-gray-600/50 rounded-xl leading-5 bg-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 backdrop-blur-sm"
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* 🔄 Resend verification link — ADD THIS */}
+                {showResend && (
+                  <p className="text-xs text-orange-400 text-right -mt-4 mb-4">
+                    Didn’t get the e‑mail?{" "}
+                    <button
+                      type="button"
+                      className="underline hover:text-orange-200"
+                      onClick={handleResendVerification}
+                      disabled={loading}
+                    >
+                      Resend verification
+                    </button>
+                  </p>
+                )}
+
                 <div>
                   <button
                     type="submit"
@@ -224,7 +319,7 @@ export default function SignIn() {
                         Processing...
                       </div>
                     ) : (
-                      "Sign In"
+                      isCreateMode ? "Create Account" : "Sign In"
                     )}
                   </button>
                 </div>
@@ -241,7 +336,7 @@ export default function SignIn() {
                     alt="Google Logo"
                     className="w-5 h-5"
                   />
-                  Continue with Google
+                  {isCreateMode ? 'Create account with Google' : 'Sign in with Google'}
                 </button>
               </div>
 
@@ -256,7 +351,7 @@ export default function SignIn() {
                     alt="Microsoft logo"
                     className="w-5 h-5"
                   />
-                  Continue with Microsoft
+                  {isCreateMode ? 'Create account with Microsoft' : 'Sign in with Microsoft'}
                 </button>
               </div>
 
