@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Home, LogOut, History, Bell, ListChecks, Menu, X, PersonStanding} from "lucide-react"
+import { Home, LogOut, History, Bell, ListChecks, Menu, X, PersonStanding, UserRound} from "lucide-react"
 import { getUserProfile } from "../services/firebaseService"
 import { auth } from "../firebase"
 import { signOut } from "firebase/auth"
@@ -141,9 +141,9 @@ export default function AppLayout({ children }) {
           <nav className="flex space-x-5">
             <NavItem path="/dashboard" icon={Home} label="Home" />
             <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" />
-            <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
             <NavItem path="/community" icon={PersonStanding} label="Community"  />
-            <NavItem path="/profile" icon={PersonStanding} label="Profile"  />
+            <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
+            <NavItem path="/profile" icon={UserRound} label="Profile"  />
             <NavItem path="/alerts" icon={Bell} label="Alerts" />
           </nav>
           <div className="flex items-center space-x-4">
@@ -205,9 +205,9 @@ export default function AppLayout({ children }) {
             <nav className="p-5 space-y-2">
               <NavItem path="/dashboard" icon={Home} label="Home" mobile />
               <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" mobile />
-              <NavItem path="/previous-bets" icon={History} label="Previous Bets" mobile />
               <NavItem path="/community" icon={PersonStanding} label="Community" mobile />
-              <NavItem path="/profile" icon={PersonStanding} label="Profile"  mobile />
+              <NavItem path="/previous-bets" icon={History} label="Previous Bets" mobile />
+              <NavItem path="/profile" icon={UserRound} label="Profile"  mobile />
               <NavItem path="/alerts" icon={Bell} label="Alerts" mobile />
             </nav>
 

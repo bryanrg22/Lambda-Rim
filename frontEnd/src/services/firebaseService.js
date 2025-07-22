@@ -26,6 +26,9 @@ import { createUserWithEmailAndPassword,
         signOut,
 } from "firebase/auth";
 
+const DEFAULT_PFP = "/default_pfp.jpg";
+const safeAvatar = (url) => (url && url.trim() !== "" ? url : DEFAULT_PFP);
+
 // ===== HELPER FUNCTIONS FOR DOCUMENT REFERENCES =====
 // Convert any flavour of gameDate into YYYYMMDD for IDs
 const getDateSuffix = (pd) => {
@@ -279,6 +282,8 @@ export const getUserIdForAuthUid = async (uid) => {
 
 // ↔️ write/refresh the mapping & profile provider blob
 export const linkAuthUidToUser = async (uid, userId, providerKey, authUser) => {
+  const avatar = safeAvatar(authUser.photoURL);
+
   await setDoc(doc(db, "authMap", uid), { userId, provider: providerKey }, { merge: true });
 
   const userRef = doc(db, "users", userId);
@@ -287,12 +292,13 @@ export const linkAuthUidToUser = async (uid, userId, providerKey, authUser) => {
       uid,
       email: authUser.email,
       displayName: authUser.displayName,
-      photoURL: authUser.photoURL,
+      photoURL: avatar,
       linkedAt: serverTimestamp(),
     },
     "profile.email":        authUser.email,
     "profile.displayName":  authUser.displayName,
-    "profile.pfp":          authUser.photoURL,
+    "profile.photoURL":     avatar,
+    "profile.pfp":          avatar,
     "profile.lastLogin":    serverTimestamp(),
   });
 };
@@ -309,8 +315,11 @@ export const upsertUserFromAuthUser = async (authUser, providerKey = "google", o
   // 1) direct map
   let userId = await getUserIdForAuthUid(authUser.uid);
   if (userId) {
+    const avatar = safeAvatar(authUser.photoURL);
     await updateDoc(doc(db, "users", userId), {
       "profile.lastLogin": serverTimestamp(),
+      "profile.photoURL":  avatar,
+      "profile.pfp": avatar,
     });
     return userId;
   }
@@ -516,6 +525,17 @@ export const getUserByUsername = async (username) => {
     throw error
   }
 }
+
+/**
+ * Lightweight existence check used by the Community search bar.
+ * Returns true/false – no profile parsing overhead.
+ */
+export const doesUserExist = async (username) => {
+  if (!username) return false;
+  const snap = await getDoc(doc(db, "users", username.trim().toLowerCase()));
+  return snap.exists();
+};
+
 
 // Verify user password
 export const verifyUserPassword = (userData, password) => {
@@ -1357,6 +1377,8 @@ export const initializeDatabase = async (userId) => {
           username: userId,
           email: `${userId}@example.com`,
           displayName: userId,
+          pfp: DEFAULT_PFP,
+          photoURL: DEFAULT_PFP,
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
           totalEarnings: 0,
@@ -1422,6 +1444,8 @@ export const initializeUser = async (username, password) => {
           password: password,
           email: `${username}@example.com`,
           displayName: username,
+          pfp: DEFAULT_PFP,
+          photoURL: DEFAULT_PFP,
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
           totalEarnings: 0,

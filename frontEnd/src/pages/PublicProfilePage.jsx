@@ -15,91 +15,8 @@ import {
   Clock,
 } from "lucide-react"
 import AppLayout from "../components/AppLayout"
+import { getUserProfile, getBetHistory }        from "../services/firebaseService"
 
-// Mock user data - replace with actual API calls
-const mockUsers = {
-  john_doe: {
-    id: "john_doe",
-    displayName: "John Doe",
-    username: "john_doe",
-    bio: "Professional sports bettor with 5+ years experience. Specializing in NBA and NFL picks.",
-    location: "Las Vegas, NV",
-    website: "https://johndoepicks.com",
-    pfp: "/placeholder.svg?height=120&width=120&text=JD",
-    joinDate: "2022-03-15",
-    winCount: 156,
-    totalBets: 203,
-    totalEarnings: 4250.75,
-    isOnline: true,
-    lastSeen: "2 minutes ago",
-    socialLinks: {
-      twitter: "https://twitter.com/johndoepicks",
-      youtube: "https://youtube.com/johndoepicks",
-      twitch: "https://twitch.tv/johndoepicks",
-    },
-    recentBets: [
-      {
-        id: 1,
-        date: "2024-01-20",
-        picks: ["LeBron James OVER 25.5 pts", "Stephen Curry OVER 4.5 3PM"],
-        result: "Won",
-        amount: 50,
-        winnings: 95,
-      },
-      {
-        id: 2,
-        date: "2024-01-19",
-        picks: ["Luka Doncic OVER 30.5 pts", "Jayson Tatum OVER 26.5 pts"],
-        result: "Lost",
-        amount: 75,
-        winnings: 0,
-      },
-      { id: 3, date: "2024-01-18", picks: ["Giannis OVER 28.5 pts"], result: "Won", amount: 100, winnings: 180 },
-    ],
-    achievements: [
-      { title: "Hot Streak", description: "Won 10 bets in a row", icon: "🔥" },
-      { title: "High Roller", description: "Placed a bet over $500", icon: "💎" },
-      { title: "Community Leader", description: "Top 10% of community members", icon: "👑" },
-    ],
-    privacySettings: {
-      showStats: true,
-      showBetHistory: true,
-      allowMessages: true,
-    },
-  },
-  sarah_picks: {
-    id: "sarah_picks",
-    displayName: "Sarah Wilson",
-    username: "sarah_picks",
-    bio: "Data-driven betting strategies. Follow for consistent profits and bankroll management tips.",
-    location: "New York, NY",
-    pfp: "/placeholder.svg?height=120&width=120&text=SW",
-    joinDate: "2021-11-08",
-    winCount: 289,
-    totalBets: 367,
-    totalEarnings: 8750.25,
-    isOnline: false,
-    lastSeen: "1 hour ago",
-    socialLinks: {
-      twitter: "https://twitter.com/sarahpicks",
-      instagram: "https://instagram.com/sarahpicks",
-      tiktok: "https://tiktok.com/@sarahpicks",
-    },
-    recentBets: [
-      { id: 1, date: "2024-01-20", picks: ["Kevin Durant OVER 27.5 pts"], result: "Won", amount: 200, winnings: 360 },
-      { id: 2, date: "2024-01-19", picks: ["Damian Lillard OVER 5.5 3PM"], result: "Won", amount: 150, winnings: 285 },
-    ],
-    achievements: [
-      { title: "Profit Master", description: "Earned over $5000", icon: "💰" },
-      { title: "Consistency King", description: "70%+ win rate over 100 bets", icon: "📈" },
-    ],
-    privacySettings: {
-      showStats: true,
-      showBetHistory: false,
-      allowMessages: true,
-    },
-  },
-}
 
 export default function PublicProfilePage() {
   const { username } = useParams()
@@ -117,18 +34,57 @@ export default function PublicProfilePage() {
         const userId = sessionStorage.getItem("currentUser")
         setCurrentUser(userId)
 
-        // Load profile data (mock data for now)
-        const profile = mockUsers[username]
-        if (!profile) {
+        // 1️⃣ pull the user doc from Firestore
+        const raw = await getUserProfile(username)
+        if (!raw) {                       // user doesn’t exist
           navigate("/community")
           return
         }
 
-        setUserProfile(profile)
+        // 2️⃣ flatten old/new schema shapes and supply safe defaults
+        const profile = raw.profile ? { ...raw.profile } : { ...raw }
 
-        // Check friendship status (mock for now)
-        setIsFriend(Math.random() > 0.5)
-        setFriendRequestSent(Math.random() > 0.7)
+        // 🔄 fetch completed bets (limit to 10 for now)
+        const rawHistory = await getBetHistory(username);
+        const recentHistory = rawHistory.slice(0, 10).map((b) => ({
+          id:           b.id,
+          date:         (b.settledAt?.seconds
+                          ? new Date(b.settledAt.seconds * 1000)
+                          : new Date()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
+          amount:       b.betAmount,
+          payOut:       b.betPayOut,
+          result:       b.betResult || b.status,        // "Won" | "Lost"
+          winnings:     b.winnings   || 0,
+          picks:        b.picks.map((p) => p.name || p.playerName || p.player),
+        }));
+
+
+        setUserProfile({
+          id:           username,
+          username,
+          displayName:  profile.displayName || username,
+          pfp:          profile.pfp || profile.photoURL || "/default_pfp.jpg",
+          bio:          profile.bio        || "",
+          location:     profile.location   || "",
+          website:      profile.website    || "",
+          joinDate:     profile.createdAt?.seconds
+                          ? new Date(profile.createdAt.seconds * 1000).toISOString()
+                          : null,
+          winCount:     profile.winCount   || 0,
+          totalBets:    profile.totalBets  || 0,
+          totalEarnings:profile.totalEarnings || 0,
+          isOnline:     true,              // real presence can come later
+          lastSeen:     "just now",
+          socialLinks:  profile.socialLinks || {},
+          recentBets:   recentHistory   || [],
+          achievements: profile.achievements || [],
+          privacySettings: profile.privacySettings || {
+            showStats:      true,
+            showBetHistory: true,
+            allowMessages:  true,
+          },
+        })
+
       } catch (error) {
         console.error("Error loading profile:", error)
       } finally {
@@ -315,9 +271,13 @@ export default function PublicProfilePage() {
             {userProfile.privacySettings.showBetHistory && (
               <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                 <div className="flex items-center space-x-3 mb-6">
+                  {userProfile.recentBets.length === 0 && (
+                    <p className="text-gray-400">No settled bets yet.</p>
+                  )}
                   <Activity className="w-6 h-6 text-blue-400" />
                   <h2 className="text-2xl font-bold text-white">Recent Betting Activity</h2>
                 </div>
+
 
                 <div className="space-y-4">
                   {userProfile.recentBets.map((bet) => (
@@ -336,7 +296,7 @@ export default function PublicProfilePage() {
                       </div>
 
                       <div className="space-y-2 mb-3">
-                        {bet.picks.map((pick, index) => (
+                        {(bet.picks || []).map((pick, index) => (
                           <div key={index} className="text-white font-medium">
                             • {pick}
                           </div>
@@ -355,27 +315,7 @@ export default function PublicProfilePage() {
               </div>
             )}
 
-            {/* Achievements */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-              <div className="flex items-center space-x-3 mb-6">
-                <Trophy className="w-6 h-6 text-yellow-400" />
-                <h2 className="text-2xl font-bold text-white">Achievements</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {userProfile.achievements.map((achievement, index) => (
-                  <div key={index} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{achievement.icon}</span>
-                      <div>
-                        <h3 className="font-bold text-white">{achievement.title}</h3>
-                        <p className="text-sm text-gray-400">{achievement.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            
           </div>
 
           {/* Sidebar */}

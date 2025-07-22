@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react"
 import AppLayout from "../components/AppLayout"
+import { doesUserExist } from "../services/firebaseService"
 
 /* -----------------------------------------------------------
 1️⃣  List every Twitch channel you want to show
@@ -584,6 +585,7 @@ function CreatorCard({ creator }) {
 
 export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchLoading, setSearchLoading] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [showMoreTikToks, setShowMoreTikToks] = useState(false)
   const creatorScrollRef = useRef(null)
@@ -625,6 +627,34 @@ export default function CommunityPage() {
     }
   }
 
+  const runUserSearch = async () => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return                                  // empty -> ignore
+  
+    setSearchLoading(true)
+    try {
+      const found = await doesUserExist(q)
+      if (found) {
+        navigate(`/profile/${q}`)                   // same path used by cards
+      } else {
+        alert(`No user named “${q}” was found.`)
+      }
+    } catch (err) {
+      console.error("search‑error", err)
+      alert("Search failed – please try again.")
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+  
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      runUserSearch()
+    }
+  }
+  
+
   const handleViewProfile = (username) => {
     navigate(`/profile/${username}`)
   }
@@ -655,8 +685,8 @@ export default function CommunityPage() {
               Betting Community Hub
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Connect with top sports betting creators across platforms. Discover live streams, expert picks, and
-              winning strategies.
+              Connect with top sports betting creators, friends, and users across platforms. Discover expert picks, social media uploads with betting advice, live streams, 
+              winning strategies, and more!.
             </p>
 
             {/* Search Bar */}
@@ -665,11 +695,20 @@ export default function CommunityPage() {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search for creators, picks, or strategies..."
+                  placeholder="Search for creators, friends, users, etc..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   className="w-full pl-12 pr-4 py-4 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={runUserSearch}
+                  disabled={searchLoading}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 
+                            text-white px-3 py-1 rounded-lg disabled:opacity-60">
+                  {searchLoading ? "…" : "Go"}
+                </button>
               </div>
             </div>
           </div>
