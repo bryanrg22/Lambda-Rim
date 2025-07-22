@@ -12,7 +12,6 @@ import {
   X,
   Eye,
   EyeOff,
-  Bell,
   Shield,
   Trash2,
   ExternalLink,
@@ -69,14 +68,6 @@ export default function ProfilePage() {
     discord: "",
   })
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    betAlerts: true,
-    creatorUpdates: true,
-    weeklyReports: true,
-  })
-
   const [privacySettings, setPrivacySettings] = useState({
     profileVisibility: "public",
     showStats: true,
@@ -107,7 +98,6 @@ export default function ProfilePage() {
             website: profile.website || "",
           })
 
-          // Load connected services and social links from profile
           setConnectedServices(
             profile.connectedServices || {
               google: false,
@@ -125,16 +115,6 @@ export default function ProfilePage() {
               kick: "",
               twitter: "",
               discord: "",
-            },
-          )
-
-          setNotificationSettings(
-            profile.notificationSettings || {
-              emailNotifications: true,
-              pushNotifications: true,
-              betAlerts: true,
-              creatorUpdates: true,
-              weeklyReports: true,
             },
           )
 
@@ -164,7 +144,6 @@ export default function ProfilePage() {
         ...profileForm,
         connectedServices,
         socialLinks,
-        notificationSettings,
         privacySettings,
       }
 
@@ -172,7 +151,6 @@ export default function ProfilePage() {
       setUserProfile({ ...userProfile, ...updatedProfile })
       setEditingProfile(false)
 
-      // Show success message
       alert("Profile updated successfully!")
     } catch (error) {
       console.error("Error updating profile:", error)
@@ -183,7 +161,6 @@ export default function ProfilePage() {
   }
 
   const handleConnectService = (service) => {
-    // In a real implementation, this would trigger OAuth flow
     setConnectedServices((prev) => ({
       ...prev,
       [service]: !prev[service],
@@ -197,11 +174,11 @@ export default function ProfilePage() {
     }))
   }
 
+  // Updated tabs without notifications
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "account", label: "Account", icon: Settings },
     { id: "social", label: "Social Links", icon: Link2 },
-    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy", icon: Shield },
   ]
 
@@ -593,64 +570,6 @@ export default function ProfilePage() {
               >
                 <Save className="w-4 h-4" />
                 <span>{saving ? "Saving..." : "Save Social Links"}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === "notifications" && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-white">Notification Preferences</h2>
-              <p className="text-gray-400">Choose what notifications you'd like to receive.</p>
-
-              <div className="space-y-4">
-                {Object.entries(notificationSettings).map(([key, enabled]) => {
-                  const notificationConfig = {
-                    emailNotifications: { name: "Email Notifications", desc: "Receive notifications via email" },
-                    pushNotifications: {
-                      name: "Push Notifications",
-                      desc: "Receive push notifications in your browser",
-                    },
-                    betAlerts: { name: "Bet Alerts", desc: "Get notified about your active bets" },
-                    creatorUpdates: { name: "Creator Updates", desc: "Updates from creators you follow" },
-                    weeklyReports: { name: "Weekly Reports", desc: "Weekly summary of your betting performance" },
-                  }
-
-                  const config = notificationConfig[key]
-
-                  return (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600"
-                    >
-                      <div>
-                        <h3 className="font-medium text-white">{config.name}</h3>
-                        <p className="text-sm text-gray-400">{config.desc}</p>
-                      </div>
-                      <button
-                        onClick={() => setNotificationSettings((prev) => ({ ...prev, [key]: !enabled }))}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          enabled ? "bg-blue-600" : "bg-gray-600"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            enabled ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <button
-                onClick={handleSaveProfile}
-                disabled={saving}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{saving ? "Saving..." : "Save Preferences"}</span>
               </button>
             </div>
           )}

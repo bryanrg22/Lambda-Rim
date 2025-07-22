@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Search,
   Users,
@@ -11,6 +12,8 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
+  Clock,
 } from "lucide-react"
 import AppLayout from "../components/AppLayout"
 
@@ -286,7 +289,7 @@ function TikTokEmbed({ url, id, creator, timestamp }) {
       </div>
 
       {/* TikTok Embed */}
-      <blockquote className="tiktok-embed" cite={url} data-video-id={id} style={{ maxWidth: 0, minWidth: 320 }}>
+      <blockquote className="tiktok-embed" cite={url} data-video-id={id} style={{ maxWidth: "100%", minWidth: 325 }}>
         <section>
           Watch on&nbsp;
           <a href={url} target="_blank" rel="noreferrer">
@@ -297,6 +300,58 @@ function TikTokEmbed({ url, id, creator, timestamp }) {
     </div>
   )
 }
+
+// Mock friends data
+const mockFriends = [
+  {
+    id: 1,
+    name: "John Doe",
+    username: "john_doe",
+    avatar: "/placeholder.svg?height=60&width=60&text=JD",
+    winRate: "76.5%",
+    totalEarnings: 4250.75,
+    isOnline: true,
+    lastBet: "2h ago",
+    recentPick: "LeBron OVER 25.5 pts",
+    status: "friend",
+  },
+  {
+    id: 2,
+    name: "Sarah Wilson",
+    username: "sarah_picks",
+    avatar: "/placeholder.svg?height=60&width=60&text=SW",
+    winRate: "82.1%",
+    totalEarnings: 8750.25,
+    isOnline: false,
+    lastBet: "1d ago",
+    recentPick: "Warriors -3.5",
+    status: "friend",
+  },
+  {
+    id: 3,
+    name: "Mike Chen",
+    username: "mike_bets",
+    avatar: "/placeholder.svg?height=60&width=60&text=MC",
+    winRate: "68.9%",
+    totalEarnings: 2100.5,
+    isOnline: true,
+    lastBet: "30m ago",
+    recentPick: "Curry OVER 4.5 3PM",
+    status: "pending",
+  },
+  {
+    id: 4,
+    name: "Alex Rodriguez",
+    username: "alex_sharp",
+    avatar: "/placeholder.svg?height=60&width=60&text=AR",
+    winRate: "71.3%",
+    totalEarnings: 5680.9,
+    isOnline: false,
+    lastBet: "4h ago",
+    recentPick: "Lakers ML",
+    status: "friend",
+  },
+]
 
 // Mock creator data
 const topCreators = [
@@ -361,6 +416,78 @@ const topCreators = [
     verified: true,
   },
 ]
+
+function FriendCard({ friend, onViewProfile, onFriendAction }) {
+  return (
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-300 group min-w-[320px] flex-shrink-0">
+      {/* Friend Header */}
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="relative">
+          <img
+            src={friend.avatar || "/placeholder.svg"}
+            alt={friend.name}
+            className="w-16 h-16 rounded-full border-2 border-green-500 cursor-pointer"
+            onClick={() => onViewProfile(friend.username)}
+          />
+          <div
+            className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 ${
+              friend.isOnline ? "bg-green-500" : "bg-gray-500"
+            }`}
+          />
+        </div>
+        <div className="flex-1">
+          <h3
+            className="font-bold text-white text-lg cursor-pointer hover:text-blue-400 transition-colors"
+            onClick={() => onViewProfile(friend.username)}
+          >
+            {friend.name}
+          </h3>
+          <p className="text-gray-400">@{friend.username}</p>
+          <p className="text-sm text-gray-500">{friend.isOnline ? "Online now" : `Last bet ${friend.lastBet}`}</p>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="mb-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+        <h4 className="text-sm font-semibold text-gray-300 mb-2">Latest Pick</h4>
+        <p className="text-white font-medium">{friend.recentPick}</p>
+        <p className="text-xs text-gray-400 mt-1">{friend.lastBet}</p>
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="bg-gray-700/50 rounded-lg p-3">
+          <p className="text-xs text-gray-400">Win Rate</p>
+          <p className="text-lg font-bold text-green-400">{friend.winRate}</p>
+        </div>
+        <div className="bg-gray-700/50 rounded-lg p-3">
+          <p className="text-xs text-gray-400">Earnings</p>
+          <p className="text-lg font-bold text-blue-400">${friend.totalEarnings.toFixed(0)}</p>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex space-x-2">
+        <button
+          onClick={() => onViewProfile(friend.username)}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200"
+        >
+          View Profile
+        </button>
+        <button
+          onClick={() => onFriendAction(friend)}
+          className={`flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors ${
+            friend.status === "friend"
+              ? "bg-green-600 hover:bg-green-700 text-white"
+              : "bg-yellow-600 hover:bg-yellow-700 text-white"
+          }`}
+        >
+          {friend.status === "friend" ? <UserCheck className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function CreatorCard({ creator }) {
   const getPlatformIcon = (platform) => {
@@ -460,6 +587,8 @@ export default function CommunityPage() {
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [showMoreTikToks, setShowMoreTikToks] = useState(false)
   const creatorScrollRef = useRef(null)
+  const friendsScrollRef = useRef(null)
+  const navigate = useNavigate()
 
   /* -----------------------------------------------------------
      2️⃣  Load the TikTok SDK once
@@ -483,6 +612,28 @@ export default function CommunityPage() {
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
       })
+    }
+  }
+
+  const scrollFriends = (direction) => {
+    if (friendsScrollRef.current) {
+      const scrollAmount = 340 // Width of friend card + gap
+      friendsScrollRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      })
+    }
+  }
+
+  const handleViewProfile = (username) => {
+    navigate(`/profile/${username}`)
+  }
+
+  const handleFriendAction = (friend) => {
+    if (friend.status === "friend") {
+      alert(`Removed ${friend.name} from friends`)
+    } else {
+      alert(`Cancelled friend request to ${friend.name}`)
     }
   }
 
@@ -544,6 +695,48 @@ export default function CommunityPage() {
           </div>
         </div>
 
+        {/* Friends Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <h2 className="text-3xl font-bold text-white">Friends</h2>
+              <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                {mockFriends.filter((f) => f.status === "friend").length} Friends
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => scrollFriends("left")}
+                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-400" />
+              </button>
+              <button
+                onClick={() => scrollFriends("right")}
+                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontal Scrollable Friend Cards */}
+          <div
+            ref={friendsScrollRef}
+            className="flex space-x-6 overflow-x-auto scrollbar-hide pb-4"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {mockFriends.map((friend) => (
+              <FriendCard
+                key={friend.id}
+                friend={friend}
+                onViewProfile={handleViewProfile}
+                onFriendAction={handleFriendAction}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Creator Spotlight Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -576,7 +769,7 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        {/* Tik Tok Feed Section */}
+        {/* Content Feed Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-white">Latest TikTok Picks</h2>
