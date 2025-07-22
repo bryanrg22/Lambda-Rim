@@ -3,6 +3,8 @@ import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { Home, LogOut, History, Bell, ListChecks, Menu, X, PersonStanding} from "lucide-react"
 import { getUserProfile } from "../services/firebaseService"
+import { auth } from "../firebase"
+import { signOut } from "firebase/auth"
 
 export default function AppLayout({ children }) {
   const [userProfile, setUserProfile] = useState(null)
@@ -48,8 +50,8 @@ export default function AppLayout({ children }) {
   // Total earnings from user profile
   const totalEarnings = userProfile?.totalEarnings || 0
 
-  const handleSignOut = () => {
-    // Clear user from sessionStorage
+  const handleSignOut = async () => {
+    await signOut(auth);
     sessionStorage.removeItem("currentUser")
     navigate("/") // Navigate to the SignIn page
   }
@@ -140,8 +142,9 @@ export default function AppLayout({ children }) {
             <NavItem path="/dashboard" icon={Home} label="Home" />
             <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" />
             <NavItem path="/previous-bets" icon={History} label="Previous Bets" />
-            <NavItem path="/alerts" icon={Bell} label="Alerts" />
             <NavItem path="/community" icon={PersonStanding} label="Community"  />
+            <NavItem path="/profile" icon={PersonStanding} label="Profile"  />
+            <NavItem path="/alerts" icon={Bell} label="Alerts" />
           </nav>
           <div className="flex items-center space-x-4">
             <img
@@ -203,8 +206,9 @@ export default function AppLayout({ children }) {
               <NavItem path="/dashboard" icon={Home} label="Home" mobile />
               <NavItem path="/processed-players" icon={ListChecks} label="Already Processed Players" mobile />
               <NavItem path="/previous-bets" icon={History} label="Previous Bets" mobile />
-              <NavItem path="/alerts" icon={Bell} label="Alerts" mobile />
               <NavItem path="/community" icon={PersonStanding} label="Community" mobile />
+              <NavItem path="/profile" icon={PersonStanding} label="Profile"  mobile />
+              <NavItem path="/alerts" icon={Bell} label="Alerts" mobile />
             </nav>
 
             <div className="absolute bottom-5 left-5 right-5">

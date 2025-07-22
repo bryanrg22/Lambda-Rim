@@ -443,8 +443,17 @@ export const signInWithProviderAndLink = async (provider, providerKey, promptFor
       const pw       = await promptForPw(email);
       primaryUser    = (await signInWithEmailAndPassword(auth, email, pw)).user;
 
-    } else {
-      throw new Error(`Existing provider (${methods.join(",")}) not supported yet.`);
+    } else if (methods.length === 0) {
+      // The e‑mail exists in Auth but has *no* providers yet (rare).
+     // Treat as brand‑new: sign in with the requested provider ‑‑ no linking needed.
+     primaryUser = (await signInWithPopup(auth, provider)).user;
+     return await upsertUserFromAuthUser(primaryUser, providerKey);
+    }
+    
+    else {
+      throw new Error(
+        `Existing provider (${methods.join(",") || "none"}) not supported yet.`
+      );
     }
 
     if (pendingCred) {

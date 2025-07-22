@@ -576,6 +576,36 @@ export default function CommunityPage() {
           </div>
         </div>
 
+        {/* Tik Tok Feed Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold text-white">Latest TikTok Picks</h2>
+            <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Updated 5 minutes ago</span>
+            </div>
+          </div>
+
+          {/* Masonry Grid of TikTok Embeds */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tiktokVideos.slice(0, showMoreTikToks ? tiktokVideos.length : 4).map(({ url, id, creator, timestamp }) => (
+              <TikTokEmbed key={id} url={url} id={id} creator={creator} timestamp={timestamp} />
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {!showMoreTikToks && tiktokVideos.length > 4 && (
+            <div className="text-center">
+              <button
+                onClick={() => setShowMoreTikToks(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105"
+              >
+                Load More Picks
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Live Streams Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -628,36 +658,6 @@ export default function CommunityPage() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Content Feed Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-white">Latest TikTok Picks</h2>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Updated 5 minutes ago</span>
-            </div>
-          </div>
-
-          {/* Masonry Grid of TikTok Embeds */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {tiktokVideos.slice(0, showMoreTikToks ? tiktokVideos.length : 4).map(({ url, id, creator, timestamp }) => (
-              <TikTokEmbed key={id} url={url} id={id} creator={creator} timestamp={timestamp} />
-            ))}
-          </div>
-
-          {/* Load More Button */}
-          {!showMoreTikToks && tiktokVideos.length > 4 && (
-            <div className="text-center">
-              <button
-                onClick={() => setShowMoreTikToks(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105"
-              >
-                Load More Picks
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Community Stats Footer */}

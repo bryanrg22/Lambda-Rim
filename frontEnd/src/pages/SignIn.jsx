@@ -94,6 +94,7 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     setLoading(true); setError("");
     try {
+      await signOut(auth);
       const userId = await signInWithProviderAndLink(googleProvider, "google", async (email) => {
         // TEMP quick password prompt for testing linking to email accounts
         return window.prompt(`Enter password for ${email} to link your accounts:`);
@@ -110,6 +111,7 @@ export default function SignIn() {
   const handleMicrosoftSignIn = async () => {
     setLoading(true); setError("");
     try {
+      await signOut(auth);
       const userId = await signInWithProviderAndLink(microsoftProvider, "microsoft", async (email) => {
         return window.prompt(`Enter password for ${email} to link your accounts:`); 
       });
