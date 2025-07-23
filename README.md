@@ -1,77 +1,57 @@
-# Lambda Rim 
-## Because 99% ain’t a free throw
+# Lambda Rim – *The #1 Hub for NBA Fanatasy Sports Betting for 'Over' Points*
+<img width="200" height="200" alt="Image" src="https://github.com/user-attachments/assets/c1dadc67-f681-496e-95da-14aa5df64c25" />
 
-**Lead Developer | Feb 2025 – Present**  
-A full-stack, AI-powered platform that automatically analyzes NBA “Over/Under” picks on PrizePicks. From OCR’ing screenshots to running Poisson, Monte Carlo & GARCH volatility forecasts (including playoff games), and generating natural-language bet explanations via ChatGPT, this site manages the entire pipeline end-to-end—hosted on Firebase Hosting + Cloud Run with CI/CD.
+> **If they use Math, why can't we? Sign Up For Free Today!**
+
+**Website:** [LambdaRim.com](https://lambdarim.com/)
 
 ---
 
-## 🚀 Project Overview
+## What is Lambda Rim?
 
-- **Objective:** Predict NBA player point performances (“Over/Under” picks) using statistical models (Poisson, Monte Carlo, GARCH volatility) and AI-driven explanations.  
-- **Live Outcome:** Turned \$10 into \$3,279+ on PrizePicks (29,900% ROI) with an 11/14 lineup win rate.  
+Lambda Rim analyzes a **Fantasy Sports Pick**, and answers one burning question:
+
+> **“Is the *****'over'***** worth my money?”**
+
+Behind that single answer sits a full pipeline—OCR → feature engineering → probabilistic models through machhine learning and statistics → natural‑language rationale—served by a **React + Vite front‑end** and a **Flask API** on Google **Cloud Run**.
+
+---
+
+## 🚀 Current Project Overview
+
+- **Objective:** Predict NBA Player 'Point' performances (“Over” Picks) using Statistical models (Poisson, Monte Carlo, GARCH volatility) and AI-driven explanations.  
 - **Core Features:**  
   - **Screenshot Parsing (OCR):** Upload PrizePicks cards, extract player & threshold pairs.  
   - **Player Pipeline:**  
-    - Season & last-5 game averages  
-    - Poisson probability  
-    - Monte Carlo simulation  
-    - GARCH volatility forecast (regular season & playoffs)
-    - Injury report scraping
-    - Importance scoring (minutes + usage) to label Starter/Rotation/Bench
-    - ChatGPT-powered bet explanation  
+    - Player Data and Stats (Recent Games, Team v Opponent, etc) 
+    - Poisson Probability
+    - Monte Carlo Simulation
+    - GARCH Volatility Forecast
+    - Injury Report Scraping
+    - Importance Scoring (usage rate, Importance Score) to label Starter/Rotation/Bench
+    - ChatGPT-powered Bet Explanation
   - **Playoff Support:** Automatically switches to playoff stats after ≥ 5 postseason games.  
-  - **Real-Time Updates:** Background Cloud Functions mark “Concluded” games and settle bets.  
+  - **Real-Time Updates:** Background Cloud Functions mark “Concluded” games and settle bets and Scrape Offical NBA Injury Report for up-to-date Injury Information.  
   - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
+  - **Privacy First**: Account Creation through Google, Microsoft, and Firebase Authentication Methods.
+  - **Terms Of Service**: First‑time Users ensures age & jurisdiction compliance.
 
 ---
 
-## 📸 Pre Flight Website Access
+## 🛠️ Tech Stack at a Glance
+![Python] ![OCaml] ![ChatGPT] ![Flask] ![React] ![TailwindCSS] ![Google Cloud] ![Pandas] ![Firebase]
 
-[Website Link](https://prizepicksproject-15337.web.app/)
-
-- **Currently, the project is still in development as more features will be integrated along with bug fixes** 
-  - If you would like access to the website despite it's early development phase, please feel free to reach out to bryanram2024@gmail.com
-
----
-
-## 📸 Demo Video
-
-[Watch on GitHub](https://github.com/user-attachments/assets/ec796b28-824e-4374-8d9a-beedc7a0ed4e)
-
----
-
-## 🖼️ Screenshots
-
-### Home Page  
-![](https://github.com/user-attachments/assets/39f4e1e9-add3-415b-95ca-03cb9c5b3129)  
-Greeted by Earnings, Active Bets & Live Picks.
-
-### Player Analysis Panel  
-![](https://github.com/user-attachments/assets/8d960312-30c7-47f6-9004-ed82facc348b)  
-Input a player + threshold → see probability forecasts & AI explanation.
-
-### Processed Players Dashboard  
-![](https://github.com/user-attachments/assets/3f9c727b-b315-4688-bd57-0a12a55820dc)  
-Aggregated player cards across all users.
-
----
-
-## 🧰 Tech Stack
-
-### Front-End  
-- **React + Vite** – SPA framework  
-- **Tailwind CSS** – Utility-first styling  
-- **Lucide React** – Icon library  
-- **Recharts** – Charts & graphs  
-
-### Back-End  
-- **Python 3.9+**  
-- **OCaml** - Monte Carlo
+### ☁️ Back-End  
+- **Python** - BackEnd Engine
+- **OCaml** - Monte Carlo Engine
 - **Flask** – REST API  
 - **gunicorn** – WSGI server (Cloud Run)  
 - **firebase-admin** – Firestore & Auth  
 - **openai** – ChatGPT o4-mini integration
+
+### 🖼️ Front-End  
+- **React + Vite** – SPA framework  
+- **Tailwind CSS** – Utility-first styling  
 
 ### 📈 Data & Analytics  
 - **Poisson & Monte Carlo** – Probability pipelines  
@@ -80,20 +60,18 @@ Aggregated player cards across all users.
 - **NBA API** – Stats & box scores  
 - **OCR (screenshot_parser.py)** – Image data extraction  
 - **Requests** – Web scraping (NBA Injury Report)  
-- **!!Coming Soon!!** - ML Algorithm trained off of data stored in Firestore
+- **!!Coming Soon!!** - ML Algorithm trained off of player picks stored in Firestore
 
-### Infrastructure & Deployment  
+### 🏙️ Infrastructure & Deployment  
 - **Firebase Hosting** – Front-end CDN & SSL  
-- **Cloud Run** – Containerized Flask API  
+- **Google Cloud Run** – Containerized Flask API  
 - **Firebase Cloud Functions** – Background jobs & data migration  
 - **GitHub Actions** – CI/CD (build → deploy Hosting & Cloud Run)  
-- **Docker** – Back-end container  
-
+- **Docker** – Back-end container
 
 ---
 
-
-## 📊 Probability & Forecasting Methods
+## 📊 More on the Probability & Forecasting Methods
 
 Below is a quick reference on how each analytical value is produced inside the player documents.
 
@@ -112,16 +90,14 @@ Below is a quick reference on how each analytical value is produced inside the p
 - **Data window:** Up to **60** most‑recent games (regular *and* playoff)  
 - **Stats used:** sample mean `μ` & standard deviation `σ`  
 - **Simulations:** **100 000** random seasons per query  
-- **Engine priority:**  
-  1. **OCaml** routine exposed through a C shared library (`mc_stub.c`) for speed  
-  2. Fallback to NumPy’s `np.random.normal()` if the native lib isn’t available  
+- **OCaml Engine:** Routine exposed through a C shared library (`mc_stub.c`) for speed efficiency
 - **Output:** Fraction of simulations where the random score ≥ user threshold  
 - **Why Monte Carlo?** Captures hot/cold streaks and non‑Gaussian tails better than a single closed‑form model
 
 ---
 
-### 📈 GARCH Volatility Forecast (`volatilityForecast`, `volatilityPlayOffsForecast`)
-- **Data window:** **Last 50** games (or all playoff games once ≥ 5 exist)  
+### 📈 GARCH Volatility Forecast
+- **Data window:** **Last 50** games
 - **Library:** [`arch`](https://github.com/bashtage/arch) – fits a **GARCH(1,1)** model  
 - **Pipeline:**  
   1. Convert the points series to “returns” via first differences  
@@ -142,106 +118,76 @@ Together, these three metrics give a balanced outlook:
 
 ---
 
+##  📸 Demo Videos
 
-### Project Scheme
-```plaintext
-PRIZEPICKS_PREDICTIONWEBSITE/
-├── backEnd/
-│   ├── app.py
-│   ├── backtester.py
-│   ├── chatgpt_bet_explainer.py
-│   ├── injury_report.py
-│   ├── main.py
-│   ├── monte_carlo.py
-│   ├── player_analyzer.py
-│   ├── prediction_analyzer.py
-│   ├── requirements.txt
-│   ├── screenshot_parser.py
-│   └── volatility.py
-├── frontEnd/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── scripts/
-│   │   ├── services/
-│   │   ├── App.css
-│   │   ├── App.jsx
-│   │   ├── firebase.js
-│   │   ├── index.css
-│   │   └── main.jsx
-├── injury_report_fn/
-│   ├── full_injury_report.py
-├── .firebaserc
-├── firebase.json
-└── README.md
-```
+---
 
-### Firestore Database Scheme
-```plaintext
-firestore/
-├─ processedPlayers/ (collection)
-│   ├── active/ (document)
-│   │   └── {first_last_threshold_YYYYMMDD (e.g. aaron_gordon_11.5_20250511)}/ (document)
-│   │       ├─ name: string (e.g. Aaron Wiggins)
-│   │       ├─ playerId: string (e.g. 1630598)
-│   │       ├─ team: string (e.g. Oklahoma City Thunder)
-│   │       ├─ position: string (e.g. G)
-│   │       ├─ opponent: string (e.g. Minnesota Timberwolves)
-│   │       ├─ photoUrl: string
-│   │       ├─ teamLogo: string
-│   │       ├─ opponentLogo: string
-│   │       ├─ gameDate: Timestamp
-│   │       ├─ gameTime: string
-│   │       ├─ gameType: string
-│   │       ├─ teamPlayoffRank: number
-│   │       ├─ opponentPlayoffRank: number
-│   │       ├─ seasonAvgPoints: number
-│   │       ├─ last5RegularGamesAvg: number
-│   │       ├─ seasonAvgVsOpponent: number
-│   │       ├─ homeAwayAvg: number
-│   │       ├─ last5RegularGames: array<map> 
-│   │       │    └─ [{ date, points, opponent, opponentFullName, … }, …]
-│   │       ├─ advancedPerformance: map
-│   │       ├─ careerSeasonStats: array<map>
-│   │       ├─ injuryReport: map
-│   │       ├─ betExplanation: map
-│   │       ├─ poissonProbability: number
-│   │       ├─ monteCarloProbability: number
-│   │       ├─ volatilityForecast: number
-│   │       ├─ season_games_agst_opp: array<map>
-│   │       ├─ num_playoff_games: number
-│   │       ├─ playoffAvg: number
-│   │       ├─ playoff_games: array<map> 
-│   │       │    └─ [{ date, points, opponent, …, gameType: "Playoffs" }, …]
-│   │       └─ volatilityPlayOffsForecast: number
-│   ├── concluded/ (document)
-│   │       └── {first_last_threshold_YYYYMMDD}/ 
-│   │           └─ (same fields as active/)
-│   └── injury_report/ (document)
-│           └── {team_name (e.g. indiana_pacers)}/ (document)
-│               ├─ lastUpdated: timestamp
-│               ├─ players: array<map>
-│               │   ├─ gameDate: string
-│               │   ├─ gameTime: string
-│               │   └─ reason: string
-│               └─ team: string
-├─ users/{userId}/ (collection)
-│   ├─ activeBets/{YYYYMMDDTHHMMSSZ}
-│   │   └─ { betAmount, potentialWinnings, picks: [ [0] player_Document_References, [i]... ] }
-│   ├─ betHistory/{YYYYMMDDTHHMMSSZ}
-│   │   └─ { betAmount, potentialWinnings, betResult, picks: [ [0] /processedPlayers/players/active/first_last_threshold_YYYYMMDD (reference) (e.g. /processedPlayers/players/active/andrew_nembhard_7.5), [i]... ] }
-│   ├─ picks: [ [0] /processedPlayers/players/active/first_last_threshold_YYYYMMDD (reference) (e.g. /processedPlayers/players/active/andrew_nembhard_7.5), [i]... ]
-│   └─ profileData
-└─ admin/
-    ├── profile/ 
-    ├── analytics/
-    │   ├── daily_stats/
-    │   ├── user_metrics/
-    │   └── system_health/
-    ├── monitoring/
-    │   ├── api_performance/
-    │   └── error_logs/
-    └── reports/
-        ├── bet_performance/
-        └── player_analytics/
-```
+
+## What Does the Future Hold for Lambda Rim ?
+
+As the sole developer of **Lambda Rim**, I envision it evolving far beyond an NBA “over points” analyzer. I turned \$10 into \$50+ on PrizePicks just by searcing up simple stats such as averages, injury reports, and team ranks all on my iphone — I saw potential that others overlooked. What many dismiss as pure gambling, I see as a microcosm of the stock market. By mining historical data, applying statistical & machine‑learning models, and detecting hidden patterns, I’m essentially shadowing what a quant does every day.
+
+My hackathon wins and in‑office stints at top quant/software firms (Jane Street, Google) have allowed me to sharpen every algorithm and dashboard I have built. With that expertise, Lambda Rim’s mission is clear:
+
+> **Become the #1 Hub for Fantasy Sports Betting**
+
+
+## 🔍 Next Steps of Action
+
+### 1. 📊 Expanding Comprehensive Analytics
+- **All NBA Categories**: Points, rebounds, assists, blocks, and more  
+- **Multi‑League Support**: Extend the same rigorous analytics to MLB, NFL, etc.
+
+### 2. 🤖 Advanced Machine Learning
+1. **Baseline Probability Ensemble**  
+   Implement Regularised Logistic Regression, LightGBM, CatBoost, and stacking meta‑models—then calibrate—to generate rock‑solid win probabilities and surface your daily “best picks.”
+2. **Ticket Optimization & Correlation**  
+   Use an integer‑LP optimizer and Gaussian‑copula simulation to craft the single highest‑value multi‑leg ticket.
+3. **Learning to Rank**  
+   Deploy LambdaMART so the system learns from past outcomes which picks should rise to the top each day.
+4. **Deep & Bayesian Models**  
+   - **TFT** (Temporal Fusion Transformer) to capture momentum in raw game‑stat sequences  
+   - **Hierarchical Bayesian Logistic** to stabilize predictions for rookies and low‑sample players
+5. **Heavy Hitters & Fine‑Tuning**  
+   Build Player2Vec/TabTransformer embeddings, multi‑task neural nets for exact‑point forecasts, and playoff‑only fine‑tuning to eke out that final edge.
+
+### 3. 🌐 Community Hub
+- **Unified Creator Feed**: Twitch, TikTok, Discord—verified creators with performance badges  
+- **Social Features**: Friend lists, bet‑history sharing, and reputation scores  
+- **Odds Overlays**: Embed real‑time odds on social media videos (e.g., TikTok) to keep every discussion actionable
+
+### 4. 💸 Creator Economy
+- **Escrow Marketplace**: A safe, trustless place for creators to sell picks and users to transact  
+- **Creator Certification**: Vet & certify talent based on historical performance and on‑chain validation  
+- **Reputation & Trust**: Built‑in credibility scores spotlight proven winners and earn user confidence
+
+---
+
+> **Lambda Rim** will soon bridge social media, fantasy sports betting, and users—empowering everyone with built‑in analytical tools fueled by advanced machine learning & statistics.
+
+---
+
+## More About Me!
+
+**Bryan Ramirez‑Gonzalez** – First‑gen Latino, Undergrad Honors CS @ USC '28, Hackathon‑addict, Aspiring Quant.\
+*Let’s connect →*
+- Website: [bryanram.com](http://bryanram.com) - Learn More about Me Here!
+- Resume: [bryanram.com/resume.pdf](http://bryanram.com/resume.pdf)
+- Email: [bryanram2024@gmail.com](mailto:bryanram2024@gmail.com)
+- LinkedIn: [@bryanrg22](https://linkedin.com/in/bryanrg22)
+
+<img width="250" height="100" alt="Image" src="https://github.com/user-attachments/assets/084cab6e-833e-4a68-a32c-2c66d9e2fbaf" />
+
+
+
+
+[Python]:       https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54
+[OCaml]:        https://img.shields.io/badge/OCaml-%23E98407.svg?style=for-the-badge&logo=ocaml&logoColor=white
+[ChatGPT]:      https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white
+[Flask]:        https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white
+[React]:        https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB
+[TailwindCSS]:  https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
+[Firebase]:     https://img.shields.io/badge/firebase-ffca28?style=for-the-badge&logo=firebase&logoColor=black
+[Pandas]:       https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white
+[Google Cloud]: https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white
+
