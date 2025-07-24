@@ -290,25 +290,32 @@ export const getUserIdForAuthUid = async (uid) => {
 
 // ↔️ write/refresh the mapping & profile provider blob
 export const linkAuthUidToUser = async (uid, userId, providerKey, authUser) => {
-  const avatar = safeAvatar(authUser.photoURL);
-
-  await setDoc(doc(db, "authMap", uid), { userId, provider: providerKey }, { merge: true });
+  const avatar = authUser.photoURL && authUser.photoURL.trim() !== ""
+  ? authUser.photoURL
+  : null;
 
   const userRef = doc(db, "users", userId);
-  await updateDoc(userRef, {
-    [`profile.authProviders.${providerKey}`]: {
-      uid,
-      email: authUser.email,
-      displayName: authUser.displayName,
-      photoURL: avatar,
-      linkedAt: serverTimestamp(),
-    },
-    "profile.email":        authUser.email,
-    "profile.displayName":  authUser.displayName,
-    "profile.photoURL":     avatar,
-    "profile.pfp":          avatar,
-    "profile.lastLogin":    serverTimestamp(),
-  });
+  const base    = {
+  [`profile.authProviders.${providerKey}`]: {
+    uid: authUser.uid,
+    email: authUser.email,
+    displayName: authUser.displayName,
+    photoURL: avatar,
+    linkedAt: serverTimestamp(),
+  },
+    "profile.email":       authUser.email,
+    "profile.displayName": authUser.displayName,
+    "profile.lastLogin":   serverTimestamp(),
+  };
+
+  // Only write avatar keys if we actually have one
+  if (avatar) {
+    base["profile.photoURL"] = avatar;
+    base["profile.pfp"]      = avatar;
+  }
+
+  await setDoc(userRef, base, { merge: true });
+
 };
 
 // 🔑 main entry: call after ANY Firebase‑Auth sign‑in
@@ -323,12 +330,17 @@ export const upsertUserFromAuthUser = async (authUser, providerKey = "google", o
   // 1) direct map
   let userId = await getUserIdForAuthUid(authUser.uid);
   if (userId) {
-    const avatar = safeAvatar(authUser.photoURL);
-    await updateDoc(doc(db, "users", userId), {
+    const updates = {
       "profile.lastLogin": serverTimestamp(),
-      "profile.photoURL":  avatar,
-      "profile.pfp": avatar,
-    });
+    };
+  
+    // Only touch the avatar if Firebase Auth actually has one
+    if (authUser.photoURL && authUser.photoURL.trim() !== "") {
+      updates["profile.photoURL"] = authUser.photoURL;
+      updates["profile.pfp"]      = authUser.photoURL;
+    }
+  
+    await updateDoc(doc(db, "users", userId), updates);
     return userId;
   }
 
