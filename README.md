@@ -1,5 +1,5 @@
 # Lambda Rim – *The #1 Hub for NBA Fanatasy Sports Betting for 'Over' Points*
-<img width="200" height="200" alt="Image" src="https://github.com/user-attachments/assets/c1dadc67-f681-496e-95da-14aa5df64c25" />
+<img width="200" height="200" alt="Image" src="https://github-production-user-asset-6210df.s3.amazonaws.com/131308308/470000911-c1dadc67-f681-496e-95da-14aa5df64c25.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250724%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250724T000509Z&X-Amz-Expires=300&X-Amz-Signature=5b6bc78e9eeb53a9ab795a57f09598cd1c26da11c6fa63a8840c9fc49a67e538&X-Amz-SignedHeaders=host" />
 
 > **If they use Math, why can't we? Sign Up For Free Today!**
 
@@ -176,7 +176,7 @@ My hackathon wins and in‑office stints at top quant/software firms (Jane Stree
 - Email: [bryanram2024@gmail.com](mailto:bryanram2024@gmail.com)
 - LinkedIn: [@bryanrg22](https://linkedin.com/in/bryanrg22)
 
-<img width="250" height="100" alt="Image" src="https://github.com/user-attachments/assets/084cab6e-833e-4a68-a32c-2c66d9e2fbaf" />
+<img width="250" height="100" alt="Image" src="https://github-production-user-asset-6210df.s3.amazonaws.com/131308308/470031252-084cab6e-833e-4a68-a32c-2c66d9e2fbaf.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250724%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250724T000516Z&X-Amz-Expires=300&X-Amz-Signature=2693b467b404511bb84369392623005cdd03b63571b122a7e3e2f13e3e130ec1&X-Amz-SignedHeaders=host" />
 
 
 
