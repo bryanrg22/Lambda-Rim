@@ -6,7 +6,7 @@ import {
   Lock,
   Link2,
   Unlink,
-  Camera,
+  Pencil,
   Edit3,
   Save,
   X,
@@ -245,13 +245,13 @@ export default function ProfilePage() {
                 onChange={handlePfpSelect}
               />
 
-              {/* camera button */}
+              {/* Pencil button */}
               <label
                 htmlFor="pfpInput"
                 className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer transition"
                 title="Change profile picture"
               >
-                <Camera className="w-4 h-4" />
+                <Pencil className="w-4 h-4" />
               </label>
             </div>
 

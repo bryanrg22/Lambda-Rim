@@ -1,36 +1,3 @@
-# Lambda Rim
-## Because 99% ain’t a free throw
-
-
-**Lead Developer | Feb 2025 – Present** 
-A full-stack, AI-powered platform that automatically analyzes NBA “Over/Under” picks on Fantasy sports such as PrizePicks. From OCR’ing screenshots to running Poisson, Monte Carlo & GARCH volatility forecasts (including playoff games), and generating natural-language bet explanations via ChatGPT, this site manages the entire pipeline end-to-end—hosted on Firebase Hosting + Cloud Run with CI/CD.
-
-
----
-
-
-## 🚀 Project Overview
-
-
-- **Objective:** Predict NBA player point performances (“Over” picks) using statistical models (Poisson, Monte Carlo, GARCH volatility) and AI-driven explanations. 
-- **Live Outcome:** Turned \$10 into \$3,279+ on PrizePicks (29,900% ROI) with an 11/14 lineup win rate. 
-- **Core Features:** 
- - **Screenshot Parsing (OCR):** Upload PrizePicks cards, extract player & threshold pairs. 
- - **Player Pipeline:** 
-   - Season & last-5 game averages 
-   - Poisson probability 
-   - Monte Carlo simulation 
-   - GARCH volatility forecast (regular season & playoffs) 
-   - Injury report scraping 
-   - ChatGPT-powered bet explanation 
- - **Playoff Support:** Automatically switches to playoff stats after ≥ 5 postseason games. 
- - **Real-Time Updates:** Background Cloud Functions mark “Concluded” games and settle bets. 
- - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
-
-
----
-
-
 ## 📸 Pre Flight Website Access
 
 
@@ -39,12 +6,6 @@ A full-stack, AI-powered platform that automatically analyzes NBA “Over/Under�
 
 - **Currently, the project is still in development as more features will be integrated along with bug fixes**
  - If you would like access to the website despite it's early development phase, please feel free to reach out to bryanram2024@gmail.com
-
-
----
-
-
-## 📸 Demo Video
 
 
 [Watch on GitHub](https://github.com/user-attachments/assets/ec796b28-824e-4374-8d9a-beedc7a0ed4e)
@@ -247,6 +208,8 @@ PRIZEPICKS_PREDICTIONWEBSITE/
 │   │   │   ├── AlertsPage.jsx
 │   │   │   ├── SignIn.jsx
 │   │   │   ├── AdminLogin.jsx
+│   │   │   ├── ProfilePage.jsx
+│   │   │   ├── PublicProfilePage.jsx
 │   │   │   └── AdminLayout.jsx
 │   │   ├── scripts/
 │   │   │   ├── initDatabase.js
