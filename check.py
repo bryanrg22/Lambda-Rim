@@ -14,43 +14,40 @@ def init_firestore():
     return firestore.client()
 
 def check_data_metric():
-    db = init_firestore()
-    concluded = (
-        db.collection("processedPlayers")
-          .document("players")
-          .collection("concluded")
-    )
-    i = 1
+    db   = init_firestore()
+    ref  = db.collection("users").document("bryanram2024")
+    snap = ref.get()
 
-    
-    value = 'playerTeamId'
-
-    for doc_snap in concluded.stream():
-        data = doc_snap.to_dict() or {}
-        pick_id = data['pick_id']
-        player_name = data['name'].lower()
+    if snap.exists:
+        data = snap.to_dict()
+        profile_map = data.get("profile", {})    # get the nested map (or {} if missing)
+        for key, val in profile_map.items():
+            print(key, "→", val)
+    #    data = doc_snap.to_dict() or {}
+    #    pick_id = data['pick_id']
+    #    player_name = data['name'].lower()
         #injury = data.get(var)
-        missing = False
+    #    missing = False
 
         
         
 
         
-        if value not in data:
-            print(f"{i}: ❌  {doc_snap.id!r} missing '{value}'")
-            missing = True
+        #if value not in data:
+        #    print(f"{i}: ❌  {doc_snap.id!r} missing '{value}'")
+        #    missing = True
         #elif data[var] != 1 and data[var] != 0:
         #    print(f"{i}: ❌❌  {doc_snap.id!r} has {var}: '{data[var]}'")
         #    missing = True
-        else:
+        #else:
             #print(f"{i}: ✅  {doc_snap.id!r} has '{value}'")
-            print(f"{i}: ✅  {doc_snap.id!r} has {value}: '{data[value]}'")
+        #    print(f"{i}: ✅  {doc_snap.id!r} has {value}: '{data[value]}'")
 
         #if missing:
         #    print(f"Original Keys are: {list(data.keys())}")
 
         #print()
-        i+=1
+        #i+=1
 
 
     

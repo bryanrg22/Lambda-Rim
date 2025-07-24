@@ -23,7 +23,7 @@ import {
   Calendar,
 } from "lucide-react"
 import AppLayout from "../components/AppLayout"
-import { getUserProfile, updateUserProfile } from "../services/firebaseService"
+import { getUserProfile, updateUserProfile, changeUsername, calculateUserStats, uploadProfilePicture, updateUserAvatar, deleteAvatarByUrl } from "../services/firebaseService"
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState(null)
@@ -39,11 +39,10 @@ export default function ProfilePage() {
 
   // Form states
   const [profileForm, setProfileForm] = useState({
+    username: currentUser,
     displayName: "",
     email: "",
     bio: "",
-    location: "",
-    website: "",
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -87,15 +86,15 @@ export default function ProfilePage() {
 
         setCurrentUser(userId)
         const profile = await getUserProfile(userId)
+        const stats = await calculateUserStats(userId);
 
         if (profile) {
-          setUserProfile(profile)
+          setUserProfile(profile, stats)
           setProfileForm({
+            username: userId,
             displayName: profile.displayName || "",
             email: profile.email || "",
             bio: profile.bio || "",
-            location: profile.location || "",
-            website: profile.website || "",
           })
 
           setConnectedServices(
@@ -140,14 +139,20 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setSaving(true)
     try {
+      let newId = currentUser;
+      if (profileForm.username !== currentUser) {
+        newId = await changeUsername(currentUser, profileForm.username);
+        sessionStorage.setItem("currentUser", newId);
+        setCurrentUser(newId);
+      }
+     
       const updatedProfile = {
         ...profileForm,
         connectedServices,
         socialLinks,
         privacySettings,
-      }
-
-      await updateUserProfile(currentUser, updatedProfile)
+      };
+      await updateUserProfile(newId, updatedProfile);
       setUserProfile({ ...userProfile, ...updatedProfile })
       setEditingProfile(false)
 
@@ -182,6 +187,31 @@ export default function ProfilePage() {
     { id: "privacy", label: "Privacy", icon: Shield },
   ]
 
+  const handlePfpSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    if (file.size > 2 * 1024 * 1024) {            // 2 MB guard
+      alert("Please choose an image under 2 MB");
+      return;
+    }
+  
+    try {
+      // 1️⃣  delete the previous file (if any)
+      await deleteAvatarByUrl(userProfile?.pfp);
+
+      const url = await uploadProfilePicture(null, file);
+      await updateUserAvatar(currentUser, url);
+  
+      // hot‑update local state so UI swaps instantly
+      setUserProfile((prev) => ({ ...prev, pfp: url, photoURL: url }));
+      alert("Profile picture updated!");
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed – please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -198,17 +228,33 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl p-8 border border-gray-700">
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
-            {/* Avatar Section */}
+            {/* Avatar & upload */}
             <div className="relative">
               <img
-                src={userProfile?.pfp || "/placeholder.svg?height=120&width=120"}
+                src={userProfile?.pfp || "/default_pfp.jpg"}
                 alt="Profile"
                 className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover"
               />
-              <button className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-colors">
+
+              {/* hidden file input */}
+              <input
+                id="pfpInput"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePfpSelect}
+              />
+
+              {/* camera button */}
+              <label
+                htmlFor="pfpInput"
+                className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer transition"
+                title="Change profile picture"
+              >
                 <Camera className="w-4 h-4" />
-              </button>
+              </label>
             </div>
+
 
             {/* Profile Info */}
             <div className="flex-1">
@@ -314,36 +360,29 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={profileForm.username}
+                    onChange={(e) =>
+                      setProfileForm((prev) => ({ ...prev, username: e.target.value }))
+                    }
+                    disabled={!editingProfile}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
+                              text-white placeholder-gray-400 focus:outline-none
+                              focus:border-blue-500 disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
                   <input
                     type="email"
                     value={profileForm.email}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
                     disabled={!editingProfile}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={profileForm.location}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, location: e.target.value }))}
-                    disabled={!editingProfile}
-                    placeholder="City, Country"
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
-                  <input
-                    type="url"
-                    value={profileForm.website}
-                    onChange={(e) => setProfileForm((prev) => ({ ...prev, website: e.target.value }))}
-                    disabled={!editingProfile}
-                    placeholder="https://yourwebsite.com"
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                   />
                 </div>

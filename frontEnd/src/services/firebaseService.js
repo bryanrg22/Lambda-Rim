@@ -25,6 +25,14 @@ import { createUserWithEmailAndPassword,
         sendEmailVerification,
         signOut,
 } from "firebase/auth";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+
 
 const DEFAULT_PFP = "/default_pfp.jpg";
 const safeAvatar = (url) => (url && url.trim() !== "" ? url : DEFAULT_PFP);
@@ -536,6 +544,52 @@ export const doesUserExist = async (username) => {
   return snap.exists();
 };
 
+const storage = getStorage();                 // uses the same Firebase app
+export const uploadProfilePicture = async (userId, file) => {
+  const uid  = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in");
+  const path = `pfp/${uid}/${Date.now()}_${file.name}`;
+  const ref  = storageRef(storage, path);
+
+  await uploadBytes(ref, file, { contentType: file.type });
+  return await getDownloadURL(ref);           // public https://… URL
+};
+
+/**
+ * Delete a previously stored avatar when its public URL is known.
+ * Safe‑no‑op if the url is falsy or does not belong to this bucket.
+ */
+export const deleteAvatarByUrl = async (url) => {
+  if (!url) return;
+
+  try {
+    // public URL pattern: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedPath>?...
+    const pathEncoded = url.split("/o/")[1]?.split("?")[0];
+    if (!pathEncoded) return;                       // not our bucket
+
+    const fullPath   = decodeURIComponent(pathEncoded);   // pfp/<uid>/...
+    const objRef     = storageRef(storage, fullPath);
+
+    await deleteObject(objRef);
+  } catch (err) {
+    // swallow “object-not-found” so a missing old file doesn’t block upload
+    if (err.code !== "storage/object-not-found") throw err;
+  }
+};
+
+export const updateUserAvatar = async (userId, url) => {
+  const userDoc = doc(db, "users", userId);
+  await updateDoc(userDoc, {
+    "profile.photoURL": url,
+    "profile.pfp":      url,
+  });
+
+  /* If this user has a password provider saved, mirror the new URL there
+     so you don’t accidentally display a stale thumbnail elsewhere. */
+  await updateDoc(userDoc, {
+    "profile.authProviders.password.photoURL": url,
+  });
+};
 
 // Verify user password
 export const verifyUserPassword = (userData, password) => {
@@ -642,6 +696,52 @@ export const updateUserProfile = async (userId, profileData) => {
     throw error
   }
 }
+
+/**
+ * Atomically rename a user document and its key sub‑collections.
+ * NOTE: copy‑then‑delete; expensive for very large histories.
+ */
+export const changeUsername = async (oldId, newId) => {
+  /* --- 0. basic validation ------------------------------------------------ */
+  newId = newId.trim().toLowerCase()
+  if (!/^[a-z0-9_]{3,20}$/.test(newId)) throw new Error("Invalid handle")
+  if (await doesUserExist(newId))       throw new Error("Username already taken")
+
+  /* --- 1. pull the existing profile -------------------------------------- */
+  const oldRef  = doc(db, "users", oldId)
+  const oldSnap = await getDoc(oldRef)
+  if (!oldSnap.exists()) throw new Error("Profile not found")
+
+  /* --- 2. prep the new root payload ‑‑ bump username in the **profile** map */
+  const oldData    = oldSnap.data()
+  const mergedProf = { ...(oldData.profile || {}), username: newId }
+  const newData    = { ...oldData, profile: mergedProf }
+
+  /* --- 3. clone to <users>/<newId>, clone key sub‑collections ------------- */
+  const batch   = writeBatch(db)
+  const newRef  = doc(db, "users", newId)
+  batch.set(newRef, newData)
+
+  const subCols = ["activeBets", "betHistory"]
+  for (const c of subCols) {
+    const q = await getDocs(collection(db, "users", oldId, c))
+    q.forEach((d) => batch.set(doc(db, "users", newId, c, d.id), d.data()))
+    /* also mark the originals for deletion so the old shell doc disappears */
+    q.forEach((d) => batch.delete(d.ref))
+  }
+
+  /* --- 4. refresh every UID→userId mapping in authMap -------------------- */
+  for (const p of Object.values(mergedProf.authProviders || {})) {
+    if (p?.uid) batch.update(doc(db, "authMap", p.uid), { userId: newId })
+  }
+
+  /* --- 5. remove the empty root shell ------------------------------------ */
+  batch.delete(oldRef)
+  await batch.commit()
+
+  return newId
+}
+
 
 // Update user stats
 export const updateUserStats = async (userId, stats) => {
@@ -1017,6 +1117,26 @@ export const getBetHistory = async (userId) => {
     return []
   }
 }
+
+/**
+ * On‑demand aggregate of a user’s historical bets.
+ * Returns { totalBets, winCount, totalEarnings, winRate }
+ */
+export const calculateUserStats = async (userId) => {
+  const history = await getBetHistory(userId);
+
+  const totalBets      = history.length;
+  const winCount       = history.filter(
+                          b => (b.betResult || b.status || "")
+                                 .toLowerCase() === "won"
+                        ).length;
+  const totalEarnings  = history.reduce(
+                          (sum, b) => sum + (Number(b.winnings || 0)), 0
+                        );
+  const winRate        = totalBets ? (winCount / totalBets) * 100 : 0;
+
+  return { totalBets, winCount, totalEarnings, winRate };
+};
 
 // Get all bet history (simplified for now)
 export const getAllBetHistory = async (userId) => {

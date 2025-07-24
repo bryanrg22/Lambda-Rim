@@ -15,3 +15,7 @@ venv/
 
 # (leave backend/env if that really is a directory you never want tracked)
 backend/env
+
+
+.DS_Store
+**/.DS_Store

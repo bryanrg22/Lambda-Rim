@@ -26,9 +26,6 @@ export default function SignIn() {
   const [showResend, setShowResend] = useState(false)
   const navigate = useNavigate()
 
-  
-  const [useEmail, setUseEmail] = useState(false);        // toggle between legacy username vs email login
-  const [isNew, setIsNew] = useState(false);              // email sign-up vs sign-in
 
   const [isCreateMode, setIsCreateMode] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -46,7 +43,7 @@ export default function SignIn() {
     }
   
     try {
-      const isEmail = email.includes("@");
+      const isEmail = /.+@.+\..+/.test(email);
   
       if (isEmail) {
         /* ---------- E‑mail path ---------- */
@@ -66,14 +63,6 @@ export default function SignIn() {
           navigate("/HomePage");
         }
   
-      } else {
-        /* ---------- legacy username path ---------- */
-        const userData = await getUserByUsername(email);      // email var still contains username
-        if (!userData) { setError("No account with that username."); return; }
-        if (!verifyUserPassword(userData, password)) { setError("Incorrect password."); return; }
-        await initializeUser(email, password);
-        sessionStorage.setItem("currentUser", email);
-        navigate("/HomePage");
       }
   
   
