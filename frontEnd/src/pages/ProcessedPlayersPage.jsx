@@ -3,11 +3,17 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import AppLayout from "../components/AppLayout"
 import ProcessedPlayers from "../components/ProcessedPlayers"
+import ScreenshotUploader from "../components/ScreenshotUploader"
+import PlayerAnalysisSearch from "../components/PlayerAnalysisSearch"
+import PlayerAnalysisDashboard from "../components/PlayerAnalysisDashboard"
 import { getUserPicks, addUserPick } from "../services/firebaseService"
 
 export default function ProcessedPlayersPage() {
   const [picks, setPicks] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
+  const [playerData, setPlayerData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   // Load user data when component mounts
@@ -39,6 +45,37 @@ export default function ProcessedPlayersPage() {
     loadUserData()
   }, [navigate])
 
+  const handleSearch = async (playerName, pointsThreshold) => {
+    setLoading(true)
+    setError(null)
+    setPlayerData(null)
+
+    try {
+      const response = await fetch("/api/player", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerName,
+          threshold: pointsThreshold,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setPlayerData(data)
+    } catch (error) {
+      console.error("Error fetching player data:", error)
+      setError(error.message || "Failed to fetch player data. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Add this function after the handleRemovePick function
   const handleAddProcessedPlayer = async (pick) => {
     const id = typeof pick.id === "string" ? pick.id : `${pick.playerId}_${pick.threshold}`
@@ -67,8 +104,24 @@ export default function ProcessedPlayersPage() {
     }
   }
 
+  const handleUploadComplete = (uploadedPlayers) => {
+    console.log("Upload complete:", uploadedPlayers)
+  }
+
   return (
     <AppLayout>
+      <ScreenshotUploader onUploadComplete={handleUploadComplete} />
+
+      <PlayerAnalysisSearch onSearch={handleSearch} loading={loading} error={error} />
+
+      {playerData && (
+        <PlayerAnalysisDashboard
+          playerData={playerData}
+          threshold={playerData.threshold}
+          onAddToPicks={handleAddProcessedPlayer}
+        />
+      )}
+
       <ProcessedPlayers onAddToPicks={handleAddProcessedPlayer} />
     </AppLayout>
   )
