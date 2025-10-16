@@ -13,7 +13,7 @@ Lambda Rim analyzes a **Fantasy Sports Pick**, and answers one burning question
 
 > **“Is the *****'over'***** worth my money?”**
 
-Behind that single answer sits a full pipeline—OCR → feature engineering → probabilistic models through machhine learning and statistics → natural‑language rationale—served by a **React + Vite front‑end** and a **Flask API** on Google **Cloud Run**.
+Behind that single answer sits a full pipeline—OCR → feature engineering → probabilistic models through machine learning and statistics → natural‑language rationale—served by a **React + Vite front‑end** and a **Flask API** on Google **Cloud Run**.
 
 ---
 

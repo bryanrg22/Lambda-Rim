@@ -6,8 +6,8 @@
       "type": "lldb",
       "request": "launch",
       "args": [],
-      "cwd": "/Users/bryanramirez-gonzalez/Documents/GitHub/prizePicks_predictionWebsite/backEnd",
-      "program": "/Users/bryanramirez-gonzalez/Documents/GitHub/prizePicks_predictionWebsite/backEnd/build/Debug/outDebug"
+      "cwd": "/Users/bryanramirez-gonzalez/Documents/GitHub/Lambda-Rim/backEnd",
+      "program": "/Users/bryanramirez-gonzalez/Documents/GitHub/Lambda-Rim/backEnd/build/Debug/outDebug"
     }
   ]
 }
