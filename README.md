@@ -1,5 +1,8 @@
 # Lambda Rim – *The #1 Hub for NBA Fanatasy Sports Betting for 'Over' Points*
-<img width="200" height="200" alt="Image" src="https://github-production-user-asset-6210df.s3.amazonaws.com/131308308/470000911-c1dadc67-f681-496e-95da-14aa5df64c25.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250724%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250724T000509Z&X-Amz-Expires=300&X-Amz-Signature=5b6bc78e9eeb53a9ab795a57f09598cd1c26da11c6fa63a8840c9fc49a67e538&X-Amz-SignedHeaders=host" />
+<img width="500" height="500" alt="Image" src="https://github.com/user-attachments/assets/5b02c4fa-e8ca-4aba-9cc1-8837644c07d6" />
+
+
+---
 
 > **If they use Math, why can't we? Sign Up For Free Today!**
 
@@ -71,6 +74,70 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 
 ---
 
+##  System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    USER INTERFACE                       │
+├─────────────────────────────────────────────────────────┤
+│  • Dashboard Overview (Earnings, Active Bets)           │
+│  • Player Analysis Panel (Input + Results)              │
+│  • Processed Players Dashboard                          │
+│  • Admin Analytics & Monitoring                         │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                    REACT FRONTEND                       │
+├─────────────────────────────────────────────────────────┤
+│  • Components (UI Logic) - Tailwind CSS                 │
+│  • State Mgmt (React Hooks + Firebase Auth)             │
+│  • API Service (HTTP Calls to Flask)                    │
+│  • Real-time Updates (Firebase SDK)                     │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                    FLASK BACKEND                        │
+├─────────────────────────────────────────────────────────┤
+│  • API Routes (Endpoints) - Player Analysis, OCR        │
+│  • Business Logic - Statistical Models & AI             │
+│  • Data Processing - pandas, NumPy, NBA API             │
+│  • External Integrations - OpenAI, Web Scraping         │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                GOOGLE CLOUD FUNCTIONS                   │
+├─────────────────────────────────────────────────────────┤
+│  • Settlement Pipeline (Auto-archive bets)              │
+│  • Data Migration & Database Maintenance                │
+│  • Injury Report Updates (Scheduled)                    │
+│  • Background Analytics Computation                     │
+│  • Cloud Scheduler Triggers                             │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                  FIRESTORE DATABASE                     │
+├─────────────────────────────────────────────────────────┤
+│  • processedPlayers/ (active/concluded)                 │
+│  • users/{userId}/ (activeBets/betHistory)              │
+│  • admin/ (analytics/monitoring/reports)                │
+│  • injury_report/ (team-specific data)                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+##  Automated OCR to Prediction Pipeline
+
+![Image](https://github.com/user-attachments/assets/172d3467-0df6-4b57-b6b5-918091dd96c9)
+
+---
+
+##  Google Cloud Functions Architecture
+
+![Image](https://github.com/user-attachments/assets/7ed77000-8e11-4d05-9dfe-58c5cea3917c)
+
+---
+
 ## 📊 More on the Probability & Forecasting Methods
 
 Below is a quick reference on how each analytical value is produced inside the player documents.
@@ -118,9 +185,64 @@ Together, these three metrics give a balanced outlook:
 
 ---
 
-##  📸 Demo Videos
+##  Database Schema Design
+
+```
+FIRESTORE DATABASE STRUCTURE
+├── processedPlayers/ (collection)
+│   ├── active/ (document)
+│   │   └── {player_name_threshold_YYYYMMDD}/ (document)
+│   │       ├── Basic Info: name, playerId, team, position, opponent
+│   │       ├── Game Context: photoUrl, teamLogo, opponentLogo, gameDate, gameTime
+│   │       ├── Playoff Context: gameType, teamPlayoffRank, opponentPlayoffRank
+│   │       ├── Statistical Data: seasonAvgPoints, last5RegularGamesAvg, seasonAvgVsOpponent
+│   │       ├── Advanced Metrics: advancedPerformance, careerSeasonStats
+│   │       ├── Injury Data: injuryReport (from web scraping)
+│   │       ├── AI Output: betExplanation (ChatGPT generated)
+│   │       ├── Core Probabilities: poissonProbability, monteCarloProbability
+│   │       ├── Volatility: volatilityForecast, volatilityPlayOffsForecast
+│   │       └── Game History: last5RegularGames[], season_games_agst_opp[], playoff_games[]
+│   │
+│   ├── concluded/ (document)
+│   │   └── {player_name_threshold_YYYYMMDD}/ (same structure as active)
+│   │
+│   └── injury_report/ (document)
+│       └── {team_name}/ (document)
+│           ├── lastUpdated: timestamp
+│           ├── players: array<map> (injury status per player)
+│           └── team: string
+│
+├── users/{userId}/ (collection)
+│   ├── activeBets/{YYYYMMDDTHHMMSSZ}/
+│   │   ├── betAmount: number
+│   │   ├── potentialWinnings: number
+│   │   └── picks: array<document_references>
+│   │
+│   ├── betHistory/{YYYYMMDDTHHMMSSZ}/
+│   │   ├── betAmount: number
+│   │   ├── potentialWinnings: number
+│   │   ├── betResult: string (win/loss)
+│   │   └── picks: array<document_references>
+│   │
+│   ├── picks: array<document_references>
+│   └── profileData: map
+│
+└── admin/ (collection)
+    ├── profile/ (admin user data)
+    ├── analytics/
+    │   ├── daily_stats/ (performance metrics)
+    │   ├── user_metrics/ (user engagement)
+    │   └── system_health/ (system monitoring)
+    ├── monitoring/
+    │   ├── api_performance/ (response times, errors)
+    │   └── error_logs/ (system errors)
+    └── reports/
+        ├── bet_performance/ (win rates, ROI)
+        └── player_analytics/ (player prediction accuracy)
+```
 
 ---
+
 
 
 ## What Does the Future Hold for Lambda Rim ?
@@ -169,15 +291,16 @@ My hackathon wins and in‑office stints at top quant/software firms (Jane Stree
 
 ## More About Me!
 
-**Bryan Ramirez‑Gonzalez** – First‑gen Latino, Undergrad Honors CS @ USC '28, Hackathon‑addict, Aspiring Quant.\
+**Bryan Ramirez‑Gonzalez** – 3x Hackathon Winner, First‑gen Latino, Undergrad Honors CS @ USC '28, Hackathon‑addict\
 *Let’s connect →*
 - Website: [bryanram.com](http://bryanram.com) - Learn More about Me Here!
 - Resume: [bryanram.com/resume.pdf](http://bryanram.com/resume.pdf)
-- Email: [bryanram2024@gmail.com](mailto:bryanram2024@gmail.com)
 - LinkedIn: [@bryanrg22](https://linkedin.com/in/bryanrg22)
+- Github: [@bryanrg22](https://github.com/bryanrg22)
+- [Google Scholars](https://scholar.google.com/citations?user=x5W6xScAAAAJ&hl=en)
+- Email: [bryanram2024@gmail.com](mailto:bryanram2024@gmail.com)
 
-<img width="250" height="100" alt="Image" src="https://github-production-user-asset-6210df.s3.amazonaws.com/131308308/470031252-084cab6e-833e-4a68-a32c-2c66d9e2fbaf.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250724%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250724T000516Z&X-Amz-Expires=300&X-Amz-Signature=2693b467b404511bb84369392623005cdd03b63571b122a7e3e2f13e3e130ec1&X-Amz-SignedHeaders=host" />
-
+<img src="https://github.com/user-attachments/assets/20a89972-af31-4212-b270-1fdf06be0c7e" alt="Image 1" width="480" />
 
 
 
