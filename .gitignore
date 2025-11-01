@@ -2,6 +2,7 @@
 *.env
 .env.local
 backend/prizepicksproject-15337-firebase-adminsdk-fbsvc-c967e4c17d.json
+data/prizepicksproject-15337-firebase-adminsdk-fbsvc-98e9208115.json
 
 # ---- throw-away test stubs ----------------------------------------------
 test.py
