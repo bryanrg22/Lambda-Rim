@@ -13,6 +13,20 @@
         "*.local"
       ],
       "entryPoint": "update_injury_report"
+    },
+    {
+      "source": "prizepicks_fetch_fn",
+      "codebase": "default",
+      "region": "us-west2",
+      "runtime": "python311",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "entryPoint": "fetch_and_upload_prizepicks"
     }
   ],
   "hosting": {
