@@ -34,7 +34,7 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
     - Importance Scoring (usage rate, Importance Score) to label Starter/Rotation/Bench
     - ChatGPT-powered Bet Explanation
   - **Playoff Support:** Automatically switches to playoff stats after ≥ 5 postseason games.  
-  - **Real-Time Updates:** Background Cloud Functions mark “Concluded” games and settle bets and Scrape Offical NBA Injury Report for up-to-date Injury Information.  
+  - **Real-Time Updates:** Background Cloud Functions mark "Concluded" games and settle bets, scrape official NBA Injury Report for up-to-date injury information, and automatically fetch PrizePicks betting lines daily.  
   - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
   - **Privacy First**: Account Creation through Google, Microsoft, and Firebase Authentication Methods.
   - **Terms Of Service**: First‑time Users ensures age & jurisdiction compliance.
@@ -109,7 +109,8 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 ├─────────────────────────────────────────────────────────┤
 │  • Settlement Pipeline (Auto-archive bets)              │
 │  • Data Migration & Database Maintenance                │
-│  • Injury Report Updates (Scheduled)                    │
+│  • Injury Report Updates (Scheduled - Hourly)         │
+│  • PrizePicks Data Fetch (Scheduled - Daily 12:05 AM)  │
 │  • Background Analytics Computation                     │
 │  • Cloud Scheduler Triggers                             │
 └──────────────────────────┬──────────────────────────────┘
@@ -121,6 +122,7 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 │  • users/{userId}/ (activeBets/betHistory)              │
 │  • admin/ (analytics/monitoring/reports)                │
 │  • injury_report/ (team-specific data)                  │
+│  • preproccessed_data/prizepicks/ (daily betting lines) │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -226,6 +228,16 @@ FIRESTORE DATABASE STRUCTURE
 │   │
 │   ├── picks: array<document_references>
 │   └── profileData: map
+│
+├── preproccessed_data/ (collection)
+│   └── prizepicks/ (document)
+│       └── {game_date}/ (collection)
+│           └── {player_name}/ (document)
+│               └── {category}/ (collection)
+│                   └── {line_score}/ (document)
+│                       ├── bet_type: string ("More/Less" or "More-only")
+│                       ├── odds_type: string ("standard", "goblin", "demon")
+│                       └── projection_type: string ("Single Stat", "Combo")
 │
 └── admin/ (collection)
     ├── profile/ (admin user data)

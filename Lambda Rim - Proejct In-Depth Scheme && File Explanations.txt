@@ -227,6 +227,11 @@ PRIZEPICKS_PREDICTIONWEBSITE/
 ├── injury_report_fn/
 │   ├── full_injury_report.py
 │   └── main.py
+├── prizepicks_fetch_fn/
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── README.md
+│   └── DEPLOYMENT.md
 ├── .firebaserc
 ├── .github/workflows
 │   └── firebase-hosting-merge.yml
@@ -426,6 +431,15 @@ processedPlayers/players
 │       ├─ username: string
 │       ├─ tosAccepted: timestamp
 │       └─ winCount: number
+├─ preproccessed_data/ (collection)
+│   └─ prizepicks/ (document)
+│       └─ {game_date}/ (collection)
+│           └─ {player_name}/ (document)
+│               └─ {category}/ (collection)
+│                   └─ {line_score}/ (document)
+│                       ├─ bet_type: string ("More/Less" or "More-only")
+│                       ├─ odds_type: string ("standard", "goblin", "demon")
+│                       └─ projection_type: string ("Single Stat", "Combo")
 └─ admin/
     ├── profile/ 
     │   ├─ username: string
@@ -534,6 +548,11 @@ graph TD
     K[Cloud Scheduler<br>Hourly] -->|Pub/Sub| L[update_injury_report]
     L --> M[Scrape NBA Injury Reports]
     M --> N[Update Firestore]
+    
+    O[Cloud Scheduler<br>Daily 12:05 AM PT] -->|Pub/Sub| P[fetch_and_upload_prizepicks]
+    P --> Q[Fetch PrizePicks API]
+    Q --> R[Process & Organize Data]
+    R --> S[Upload to Firestore]
 
 
 First-Time Access Flow
@@ -571,6 +590,9 @@ Function
 	244.140625
 	python311
 	
+Note: prizepicks_fetch is deployed via gcloud CLI (not Firebase Functions), 
+so it won't appear in firebase functions:list. Use gcloud functions list instead.
+	
 
 
 
@@ -578,6 +600,7 @@ bryanramirez-gonzalez@mac functions % gcloud scheduler jobs list --location us-w
 ID                    LOCATION  SCHEDULE (TZ)                      TARGET_TYPE  STATE
 check-games-job       us-west2  */5 * * * * (America/Los_Angeles)  HTTP         ENABLED
 injury-report-hourly  us-west2  0 * * * * (America/Los_Angeles)    Pub/Sub      ENABLED
+prizepicks-fetch-daily us-west2  5 0 * * * (America/Los_Angeles)    Pub/Sub      ENABLED
 
 
 
@@ -611,8 +634,16 @@ gcloud run deploy prizepicks-backend \
 # Deploy everything
 git push origin main  # Triggers full CI/CD
 
-# Deployment command for the injury report function remains:
+# Deployment commands for Cloud Functions:
 firebase deploy --only functions:update_injury_report
+# OR using gcloud CLI (for prizepicks_fetch):
+gcloud functions deploy prizepicks_fetch \
+  --gen2 \
+  --region us-west2 \
+  --runtime python311 \
+  --source prizepicks_fetch_fn \
+  --entry-point fetch_and_upload_prizepicks \
+  --trigger-topic prizepicks-fetch-daily
 
 
 
@@ -969,4 +1000,24 @@ File
 	• Re‑creates the NBA’s PDF URL based on the most recent “eastern‑time” release window (reports drop 12 p.m./5 p.m./8 p.m. ET). • Downloads the PDF, opens it with pdfplumber, and uses explicit x‑coordinates to pull a column‑perfect table. • Normalizes team names, splits camel‑cased headings, swaps “Lastname, Firstname” → “Firstname Lastname,” and strips line‑breaks from the Reason column. • Exposes two helpers:   • get_full_injury_report() → list ⊂ {gameDate, gameTime, team, player, status, reason} for every entry.   • get_player_status(name) → quick lookup returning {status, reason} (or "NOT YET SUBMITTED" if a team hasn’t filed).
 	main.py
 	Cloud‑Function handler that keeps Firestore documents in sync with real‑time game status
-	• Utility fetch_game_status() hits nba_api’s ScoreboardV2 & BoxScoreTraditionalV2 to see whether a game has started, is live, or has finished—and, if finished, grabs the player’s final points. • check_active_players() walks the processedPlayers/players/active collection; if fetch_game_status() returns new info, it calls update_doc() to patch the Firestore doc (e.g., set "gameStatus": "Concluded" and "finalPoints": n). • Stubs for check_user_picks() and check_active_bets() illustrate the same pattern for user bet docs. • check_games_handler(request) is the HTTP entry‑point wired to Cloud Scheduler (runs every hour); it invokes check_active_players() and responds 200 OK or 500 on error.
+	• Utility fetch_game_status() hits nba_api's ScoreboardV2 & BoxScoreTraditionalV2 to see whether a game has started, is live, or has finished—and, if finished, grabs the player's final points. • check_active_players() walks the processedPlayers/players/active collection; if fetch_game_status() returns new info, it calls update_doc() to patch the Firestore doc (e.g., set "gameStatus": "Concluded" and "finalPoints": n). • Stubs for check_user_picks() and check_active_bets() illustrate the same pattern for user bet docs. • check_games_handler(request) is the HTTP entry‑point wired to Cloud Scheduler (runs every hour); it invokes check_active_players() and responds 200 OK or 500 on error.
+
+
+	prizepicks_fetch_fn/
+
+
+File
+	Purpose in one glance
+	Key responsibilities / notable elements
+	main.py
+	Automated Cloud Function that fetches PrizePicks NBA betting data and uploads to Firestore daily
+	• Entry point: fetch_and_upload_prizepicks(event) – Cloud Function triggered by Pub/Sub (via Cloud Scheduler). • Fetches live PrizePicks data from their public API (api.prizepicks.com/projections) with NBA-specific parameters (league_id: 7, in_game: true, game_mode: prizepools). • Processing pipeline:   • Extracts game date (YYYY-MM-DD) from ISO timestamps   • Maps player IDs to display names via included relationships   • Sanitizes category labels (stat_type) to Firestore-safe collection names   • Converts odds_type to bet_type ("standard" → "More/Less", "goblin"/"demon" → "More-only")   • Organizes data by game_date → player_name → category → line_score • Upload optimization: Uses Firestore batch writes (500 operations per batch) for ~4x speed improvement (~3 minutes for 7,000 records vs ~12 minutes without batching). • Firestore structure: /preproccessed_data/prizepicks/{game_date}/{player_name}/{category}/{line_score} with fields: bet_type, odds_type, projection_type. • Scheduled: Daily at 12:05 AM Pacific Time via Cloud Scheduler (prizepicks-fetch-daily). • Error handling: Graceful failures with detailed logging, skips records with missing game_date or invalid line_scores. • Performance: Typical execution time 3-5 minutes for 3,000-7,000 projections.
+	requirements.txt
+	Python dependencies for the PrizePicks fetch function
+	• firebase-functions – Firebase Cloud Functions SDK • firebase-admin – Firebase Admin SDK for Firestore operations • functions-framework – Cloud Functions framework for Python • requests – HTTP library for PrizePicks API calls
+	README.md
+	User guide and documentation for the PrizePicks fetch function
+	• Overview of function functionality and Firestore structure • Configuration details (runtime, region, trigger, schedule) • Quick start deployment instructions • Monitoring and troubleshooting guides • Performance metrics and cost estimates • API parameters explanation
+	DEPLOYMENT.md
+	Comprehensive deployment guide and template for creating new Cloud Functions
+	• Step-by-step deployment instructions using gcloud CLI • Complete guide for creating NEW Cloud Functions (8-step template) • Code templates and .gcloudignore setup • Testing and monitoring commands • Common commands reference (list, describe, logs, update, delete) • Trigger types explanation (Pub/Sub, HTTP, Cloud Storage) • Troubleshooting section • Best practices and cost optimization tips
