@@ -34,7 +34,7 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
     - Importance Scoring (usage rate, Importance Score) to label Starter/Rotation/Bench
     - ChatGPT-powered Bet Explanation
   - **Playoff Support:** Automatically switches to playoff stats after ≥ 5 postseason games.  
-  - **Real-Time Updates:** Background Cloud Functions mark "Concluded" games and settle bets, scrape official NBA Injury Report for up-to-date injury information, and automatically fetch PrizePicks betting lines daily.  
+  - **Real-Time Updates:** Background Cloud Functions mark "Concluded" games and settle bets, scrape official NBA Injury Report for up-to-date injury information. PrizePicks betting lines are automatically fetched daily via a local cron job (see note below).  
   - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
   - **Privacy First**: Account Creation through Google, Microsoft, and Firebase Authentication Methods.
   - **Terms Of Service**: First‑time Users ensures age & jurisdiction compliance.
@@ -68,7 +68,8 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 ### 🏙️ Infrastructure & Deployment  
 - **Firebase Hosting** – Front-end CDN & SSL  
 - **Google Cloud Run** – Containerized Flask API  
-- **Firebase Cloud Functions** – Background jobs & data migration  
+- **Firebase Cloud Functions** – Background jobs & data migration (injury reports)  
+- **Local Cron Jobs** – PrizePicks data fetch (runs locally due to IP blocking - see below)  
 - **GitHub Actions** – CI/CD (build → deploy Hosting & Cloud Run)  
 - **Docker** – Back-end container
 
@@ -109,10 +110,17 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 ├─────────────────────────────────────────────────────────┤
 │  • Settlement Pipeline (Auto-archive bets)              │
 │  • Data Migration & Database Maintenance                │
-│  • Injury Report Updates (Scheduled - Hourly)         │
-│  • PrizePicks Data Fetch (Scheduled - Daily 12:05 AM)  │
+│  • Injury Report Updates (Scheduled - Hourly)           │
 │  • Background Analytics Computation                     │
 │  • Cloud Scheduler Triggers                             │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                LOCAL CRON JOBS                          │
+├─────────────────────────────────────────────────────────┤
+│  • PrizePicks Data Fetch (Daily 12:05 AM PT)            │
+│  • Runs locally due to PrizePicks IP blocking           │
+│  • Multi-league support (NBA, NFL, Soccer, NHL, etc.)   │
 └──────────────────────────┬──────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────┐
@@ -137,6 +145,8 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 ##  Google Cloud Functions Architecture
 
 ![Image](https://github.com/user-attachments/assets/7ed77000-8e11-4d05-9dfe-58c5cea3917c)
+
+**Note on PrizePicks Data Fetch:** The PrizePicks data fetch was migrated from a Cloud Function to a local cron job. PrizePicks uses bot protection that blocks requests from cloud provider IP ranges (GCP, AWS, etc.), so the script now runs locally on a scheduled cron job to use a residential IP address. See `prizepicks_fetch_fn/README.md` for details.
 
 ---
 
@@ -231,13 +241,18 @@ FIRESTORE DATABASE STRUCTURE
 │
 ├── preproccessed_data/ (collection)
 │   └── prizepicks/ (document)
-│       └── {game_date}/ (collection)
-│           └── {player_name}/ (document)
-│               └── {category}/ (collection)
-│                   └── {line_score}/ (document)
-│                       ├── bet_type: string ("More/Less" or "More-only")
-│                       ├── odds_type: string ("standard", "goblin", "demon")
-│                       └── projection_type: string ("Single Stat", "Combo")
+│       └── leagues/ (collection)
+│           └── {LEAGUE}/ (document) e.g. "NBA", "NFL", "NHL", "CFB", "CBB", "SOCCER"
+│               └── {game_date}/ (collection) e.g. "2025-11-07"
+│                   └── {player_key}/ (document) e.g. "lebron_james"
+│                       ├── player_name: string e.g. "LeBron James"
+│                       ├── league: string e.g. "NBA"
+│                       ├── game_date: string e.g. "2025-11-07"
+│                       └── {category}/ (subcollection) e.g. "points", "assists", "fantasy_score"
+│                           └── {line_score}/ (document) e.g. "26.5"
+│                               ├── bet_type: string ("More/Less" or "More-only")
+│                               ├── odds_type: string ("standard", "goblin", "demon", etc.)
+│                               └── projection_type: string (API's projection_type value)
 │
 └── admin/ (collection)
     ├── profile/ (admin user data)
@@ -261,7 +276,7 @@ FIRESTORE DATABASE STRUCTURE
 
 As the sole developer of **Lambda Rim**, I envision it evolving far beyond an NBA “over points” analyzer. I turned \$10 into \$50+ on PrizePicks just by searcing up simple stats such as averages, injury reports, and team ranks all on my iphone — I saw potential that others overlooked. What many dismiss as pure gambling, I see as a microcosm of the stock market. By mining historical data, applying statistical & machine‑learning models, and detecting hidden patterns, I’m essentially shadowing what a quant does every day.
 
-My hackathon wins and in‑office stints at top quant/software firms (Jane Street, Google) have allowed me to sharpen every algorithm and dashboard I have built. With that expertise, Lambda Rim’s mission is clear:
+My hackathon wins and in‑office stints at top quant/software firms (Jane Street, Google, D.E. Shaw) have allowed me to sharpen every algorithm and dashboard I have built. With that expertise, Lambda Rim’s mission is clear:
 
 > **Become the #1 Hub for Fantasy Sports Betting**
 

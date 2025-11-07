@@ -67,7 +67,8 @@ Aggregated player cards across all users.
 ### Infrastructure & Deployment 
 - **Firebase Hosting** – Front-end CDN & SSL 
 - **Cloud Run** – Containerized Flask API 
-- **Firebase Cloud Functions** – Background jobs & data migration 
+- **Firebase Cloud Functions** – Background jobs & data migration (injury reports, archiving data) 
+- **Local Cron Jobs** – PrizePicks data fetch (runs locally due to IP blocking - see below) 
 - **GitHub Actions** – CI/CD (build → deploy Hosting & Cloud Run) 
 - **Docker** – Back-end container 
 
@@ -229,6 +230,8 @@ PRIZEPICKS_PREDICTIONWEBSITE/
 │   └── main.py
 ├── prizepicks_fetch_fn/
 │   ├── main.py
+│   ├── local_runner.py
+│   ├── run_prizepicks.sh
 │   ├── requirements.txt
 │   ├── README.md
 │   └── DEPLOYMENT.md
@@ -433,13 +436,18 @@ processedPlayers/players
 │       └─ winCount: number
 ├─ preproccessed_data/ (collection)
 │   └─ prizepicks/ (document)
-│       └─ {game_date}/ (collection)
-│           └─ {player_name}/ (document)
-│               └─ {category}/ (collection)
-│                   └─ {line_score}/ (document)
-│                       ├─ bet_type: string ("More/Less" or "More-only")
-│                       ├─ odds_type: string ("standard", "goblin", "demon")
-│                       └─ projection_type: string ("Single Stat", "Combo")
+│       └─ leagues/ (collection)
+│           └─ {LEAGUE}/ (document) e.g. "NBA", "NFL", "NHL", "CFB", "CBB", "SOCCER"
+│               └─ {game_date}/ (collection) e.g. "2025-11-07"
+│                   └─ {player_key}/ (document) e.g. "lebron_james"
+│                       ├─ player_name: string e.g. "LeBron James"
+│                       ├─ league: string e.g. "NBA"
+│                       ├─ game_date: string e.g. "2025-11-07"
+│                       └─ {category}/ (subcollection) e.g. "points", "assists", "fantasy_score"
+│                           └─ {line_score}/ (document) e.g. "26.5"
+│                               ├─ bet_type: string ("More/Less" or "More-only")
+│                               ├─ odds_type: string ("standard", "goblin", "demon", etc.)
+│                               └─ projection_type: string (API's projection_type value)
 └─ admin/
     ├── profile/ 
     │   ├─ username: string
@@ -549,10 +557,12 @@ graph TD
     L --> M[Scrape NBA Injury Reports]
     M --> N[Update Firestore]
     
-    O[Cloud Scheduler<br>Daily 12:05 AM PT] -->|Pub/Sub| P[fetch_and_upload_prizepicks]
-    P --> Q[Fetch PrizePicks API]
+    O[Local Cron Job<br>Daily 12:05 AM PT] -->|Runs locally| P[fetch_and_upload_all_prizepicks]
+    P --> Q[Fetch PrizePicks API<br>(from residential IP)]
     Q --> R[Process & Organize Data]
     R --> S[Upload to Firestore]
+    
+    Note: PrizePicks blocks cloud provider IPs, so this runs locally via cron instead of Cloud Function
 
 
 First-Time Access Flow
@@ -590,8 +600,10 @@ Function
 	244.140625
 	python311
 	
-Note: prizepicks_fetch is deployed via gcloud CLI (not Firebase Functions), 
-so it won't appear in firebase functions:list. Use gcloud functions list instead.
+Note: prizepicks_fetch was previously deployed as a Cloud Function but has been migrated to a local cron job. 
+PrizePicks uses bot protection that blocks requests from cloud provider IP ranges (GCP, AWS, etc.), 
+so the script now runs locally on a scheduled cron job to use a residential IP address. 
+See prizepicks_fetch_fn/README.md for setup instructions.
 	
 
 
@@ -600,7 +612,9 @@ bryanramirez-gonzalez@mac functions % gcloud scheduler jobs list --location us-w
 ID                    LOCATION  SCHEDULE (TZ)                      TARGET_TYPE  STATE
 check-games-job       us-west2  */5 * * * * (America/Los_Angeles)  HTTP         ENABLED
 injury-report-hourly  us-west2  0 * * * * (America/Los_Angeles)    Pub/Sub      ENABLED
-prizepicks-fetch-daily us-west2  5 0 * * * (America/Los_Angeles)    Pub/Sub      ENABLED
+
+Note: prizepicks-fetch-daily was previously scheduled via Cloud Scheduler but has been migrated to a local cron job.
+To check local cron jobs, use: crontab -l
 
 
 
@@ -636,14 +650,23 @@ git push origin main  # Triggers full CI/CD
 
 # Deployment commands for Cloud Functions:
 firebase deploy --only functions:update_injury_report
-# OR using gcloud CLI (for prizepicks_fetch):
-gcloud functions deploy prizepicks_fetch \
-  --gen2 \
-  --region us-west2 \
-  --runtime python311 \
-  --source prizepicks_fetch_fn \
-  --entry-point fetch_and_upload_prizepicks \
-  --trigger-topic prizepicks-fetch-daily
+
+# PrizePicks fetch is now a local cron job (no cloud deployment needed)
+# Setup instructions:
+# 1. Install dependencies: cd prizepicks_fetch_fn && pip install -r requirements.txt
+# 2. Set GOOGLE_APPLICATION_CREDENTIALS environment variable
+# 3. Add cron job: crontab -e
+#    Add: 5 8 * * * /path/to/prizepicks_fetch_fn/run_prizepicks.sh >> /tmp/prizepicks_cron.log 2>&1
+# See prizepicks_fetch_fn/README.md for full setup guide
+
+# Legacy Cloud Function deployment (no longer used):
+# gcloud functions deploy prizepicks_fetch \
+#   --gen2 \
+#   --region us-west2 \
+#   --runtime python311 \
+#   --source prizepicks_fetch_fn \
+#   --entry-point fetch_and_upload_prizepicks \
+#   --trigger-topic prizepicks-fetch-daily
 
 
 
@@ -1010,14 +1033,20 @@ File
 	Purpose in one glance
 	Key responsibilities / notable elements
 	main.py
-	Automated Cloud Function that fetches PrizePicks NBA betting data and uploads to Firestore daily
-	• Entry point: fetch_and_upload_prizepicks(event) – Cloud Function triggered by Pub/Sub (via Cloud Scheduler). • Fetches live PrizePicks data from their public API (api.prizepicks.com/projections) with NBA-specific parameters (league_id: 7, in_game: true, game_mode: prizepools). • Processing pipeline:   • Extracts game date (YYYY-MM-DD) from ISO timestamps   • Maps player IDs to display names via included relationships   • Sanitizes category labels (stat_type) to Firestore-safe collection names   • Converts odds_type to bet_type ("standard" → "More/Less", "goblin"/"demon" → "More-only")   • Organizes data by game_date → player_name → category → line_score • Upload optimization: Uses Firestore batch writes (500 operations per batch) for ~4x speed improvement (~3 minutes for 7,000 records vs ~12 minutes without batching). • Firestore structure: /preproccessed_data/prizepicks/{game_date}/{player_name}/{category}/{line_score} with fields: bet_type, odds_type, projection_type. • Scheduled: Daily at 12:05 AM Pacific Time via Cloud Scheduler (prizepicks-fetch-daily). • Error handling: Graceful failures with detailed logging, skips records with missing game_date or invalid line_scores. • Performance: Typical execution time 3-5 minutes for 3,000-7,000 projections.
+	Core logic for fetching PrizePicks betting data and uploading to Firestore (multi-league support)
+	• Entry point: fetch_and_upload_all_prizepicks(event) – Processes all supported leagues (NBA, NFL, Soccer, NHL, CFB, CBB). • Fetches live PrizePicks data from their public API (api.prizepicks.com/projections) with league-specific parameters. • Processing pipeline:   • Extracts game date (YYYY-MM-DD) from ISO timestamps   • Maps player IDs to display names via included relationships   • Sanitizes category labels (stat_type) to Firestore-safe collection names   • Converts odds_type to bet_type ("standard" → "More/Less", "goblin"/"demon" → "More-only")   • Organizes data by league → game_date → player_key → category → line_score • Upload optimization: Uses Firestore batch writes (500 operations per batch) for ~4x speed improvement (~3 minutes for 7,000 records vs ~12 minutes without batching). • Firestore structure: preproccessed_data/prizepicks/leagues/{LEAGUE}/{game_date}/{player_key} (with player_name, league, game_date fields) → {category}/{line_score} (with bet_type, odds_type, projection_type fields). • **Migration Note:** Previously deployed as a Cloud Function but migrated to local cron job due to PrizePicks blocking cloud provider IPs. The script now runs locally via cron to use a residential IP address. • Error handling: Graceful failures with detailed logging, skips records with missing game_date or invalid line_scores. • Performance: Typical execution time 3-5 minutes for 3,000-7,000 projections per league.
+	local_runner.py
+	Local execution entry point for running the PrizePicks fetch script manually or via cron
+	• Simple wrapper that calls main.fetch_and_upload_all_prizepicks(None). • Usage: Set GOOGLE_APPLICATION_CREDENTIALS environment variable, then run `python local_runner.py`. • Designed for local execution and cron job scheduling.
+	run_prizepicks.sh
+	Shell script for cron job execution
+	• Activates Python virtual environment, changes to script directory, and runs local_runner.py. • Configured with absolute paths for reliable cron execution. • Logs output to /tmp/prizepicks_cron.log (or custom log file specified in crontab).
 	requirements.txt
-	Python dependencies for the PrizePicks fetch function
-	• firebase-functions – Firebase Cloud Functions SDK • firebase-admin – Firebase Admin SDK for Firestore operations • functions-framework – Cloud Functions framework for Python • requests – HTTP library for PrizePicks API calls
+	Python dependencies for the PrizePicks fetch script
+	• firebase-admin – Firebase Admin SDK for Firestore operations • requests – HTTP library for PrizePicks API calls • functions-framework – (Legacy) Previously used for Cloud Function deployment, now optional
 	README.md
-	User guide and documentation for the PrizePicks fetch function
-	• Overview of function functionality and Firestore structure • Configuration details (runtime, region, trigger, schedule) • Quick start deployment instructions • Monitoring and troubleshooting guides • Performance metrics and cost estimates • API parameters explanation
+	User guide and documentation for the PrizePicks fetch script
+	• Overview of script functionality and Firestore structure • Explanation of why it runs locally (IP blocking issue) • Local setup and cron configuration instructions • Monitoring and troubleshooting guides • Performance metrics and cost estimates • API parameters explanation
 	DEPLOYMENT.md
-	Comprehensive deployment guide and template for creating new Cloud Functions
-	• Step-by-step deployment instructions using gcloud CLI • Complete guide for creating NEW Cloud Functions (8-step template) • Code templates and .gcloudignore setup • Testing and monitoring commands • Common commands reference (list, describe, logs, update, delete) • Trigger types explanation (Pub/Sub, HTTP, Cloud Storage) • Troubleshooting section • Best practices and cost optimization tips
+	(Legacy) Comprehensive deployment guide for Cloud Functions
+	• Historical reference for previous Cloud Function deployment • Step-by-step deployment instructions using gcloud CLI • Complete guide for creating NEW Cloud Functions (8-step template) • Code templates and .gcloudignore setup • Testing and monitoring commands • Common commands reference (list, describe, logs, update, delete) • Trigger types explanation (Pub/Sub, HTTP, Cloud Storage) • Troubleshooting section • Best practices and cost optimization tips
