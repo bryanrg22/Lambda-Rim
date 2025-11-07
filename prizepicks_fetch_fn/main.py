@@ -5,10 +5,26 @@ import requests
 import re
 from collections import defaultdict
 
-# Initialize Firebase Admin
+# ---------- CONFIG ----------
+
+LEAGUES = {
+    "NBA":    {"league_id": "7"},
+    "NFL":    {"league_id": "9"},
+    "SOCCER": {"league_id": "82"},
+    "NHL":    {"league_id": "8"},
+    "CFB":    {"league_id": "15"},
+    "CBB":    {"league_id": "20"},
+}
+
+PRIZEPICKS_URL = "https://api.prizepicks.com/projections"
+
+# ---------- FIREBASE INIT ----------
+
 firebase_admin.initialize_app()
 db = firestore.client()
 
+
+# ---------- HELPERS ----------
 
 def sanitize_category(label: str) -> str:
     """Create a filesystem-friendly name from category label."""
@@ -57,144 +73,191 @@ def sanitize_firestore_path_component(value: str) -> str:
     return sanitized or "unknown"
 
 
-def fetch_prizepicks_data():
-    """Fetch PrizePicks data from the API."""
-    URL = "https://api.prizepicks.com/projections"
-    PARAMS = {
-        "league_id": "7",
+def fetch_prizepicks_data(league_id: str):
+    """Fetch PrizePicks data for a given league_id."""
+    params = {
+        "league_id": league_id,
         "single_stat": "true",
         "in_game": "true",
         "state_code": "CA",
         "game_mode": "prizepools",
     }
-    
-    HEADERS = {
+    headers = {
         "Accept": "application/json",
         "User-Agent": "Mozilla/5.0",
     }
-    
+
     try:
-        resp = requests.get(URL, params=PARAMS, headers=HEADERS, timeout=15)
+        resp = requests.get(PRIZEPICKS_URL, params=params, headers=headers, timeout=15)
         resp.raise_for_status()
-        
         if "application/json" in resp.headers.get("content-type", ""):
             return resp.json()
-        else:
-            print("Non-JSON response")
-            return None
+        print("Non-JSON response")
+        return None
     except Exception as e:
-        print(f"Error fetching data: {str(e)}")
+        print(f"Error fetching data for league_id={league_id}: {str(e)}")
         return None
 
 
-@functions_framework.cloud_event
-def fetch_and_upload_prizepicks(event):
+# ---------- CORE PER-LEAGUE PIPELINE ----------
+
+def process_league(league_name: str, league_id: str):
     """
-    Cloud Function triggered by Pub/Sub (via Cloud Scheduler).
-    Fetches PrizePicks data and uploads to Firestore.
+    Fetch, process, and upload data for one league.
+    league_name: e.g. "NBA"
+    league_id:   e.g. "7"
     """
-    
     import time
     start_time = time.time()
-    
-    # Fetch data
-    print("\n📡 Fetching data from PrizePicks API...")
-    payload = fetch_prizepicks_data()
+
+    print(f"\n==============================")
+    print(f"🏈🎯 Processing league {league_name} (league_id={league_id})")
+    print(f"==============================")
+
+    sanitized_categories_seen = set()
+    raw_categories_seen = set()
+
+    # Fetch
+    payload = fetch_prizepicks_data(league_id)
     if not payload:
-        print("❌ Failed to fetch data. Exiting.")
+        print(f"❌ Failed to fetch data for {league_name}. Skipping.")
         return
-    
-    projection_count = len(payload.get('data', []))
+
+    projection_count = len(payload.get("data", []))
     print(f"✅ Fetched {projection_count} projections")
-    
-    # Process data
+
+    # Process
     print("\n🔄 Processing projections...")
     players = build_player_lookup(payload.get("included", []))
+
     organized_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    
+    player_meta = defaultdict(dict)
+
     for obj in payload.get("data", []):
         attrs = obj.get("attributes", {}) or {}
         rels = obj.get("relationships", {}) or {}
-        
+
         cat_label = attrs.get("stat_type") or "Unknown"
         category = sanitize_category(cat_label)
-        
+
+        raw_categories_seen.add(cat_label)
+        sanitized_categories_seen.add(category)
+
         player_rel = (rels.get("new_player") or {}).get("data") or {}
         player_id = player_rel.get("id")
         player_name = players.get(player_id, f"Unknown-{player_id}")
-        
+
         line_score = attrs.get("line_score")
         if line_score is None:
             continue
-        
         try:
             line_score = float(line_score)
         except Exception:
             continue
-        
+
         odds_type = attrs.get("odds_type")
         bet_type = bet_type_from_odds(odds_type)
         projection_type = attrs.get("projection_type")
         game_date = extract_game_date(attrs.get("start_time"))
-        
         if not game_date:
             continue
-        
+
         player_key = sanitize_firestore_path_component(player_name)
-        
+        player_meta[game_date][player_key] = player_name
+
         record = {
             "bet_type": bet_type,
             "odds_type": odds_type,
             "projection_type": projection_type,
         }
-        
+
         organized_data[game_date][player_key][category].append((line_score, record))
-    
-    # Upload to Firestore
+
+    # Upload
     print("\n☁️  Uploading to Firestore...")
-    base_ref = db.collection("preproccessed_data").document("prizepicks")
+    base_ref = (
+        db.collection("preproccessed_data")
+          .document("prizepicks")
+          .collection("leagues")
+          .document(league_name)
+    )
+
     total_uploaded = 0
     total_game_dates = len(organized_data)
-    
-    print(f"📊 Found {total_game_dates} unique game date(s) to process")
-    
+    print(f"📊 Found {total_game_dates} unique game date(s) to process for {league_name}")
+
     for game_date, players_dict in organized_data.items():
         print(f"   Processing game_date: {game_date}")
+        print(f"   {game_date} has {len(players_dict)} players before upload")
         date_ref = base_ref.collection(game_date)
-        
-        # Create a batch for this game_date
+
         batch = db.batch()
         batch_count = 0
-        
+
         for player_key, categories_dict in players_dict.items():
+            player_name = player_meta.get(game_date, {}).get(player_key, player_key)
+            player_doc_ref = date_ref.document(player_key)
+            batch.set(
+                player_doc_ref,
+                {
+                    "player_name": player_name,
+                    "league": league_name,
+                    "game_date": game_date,
+                },
+                merge=True,
+            )
+            batch_count += 1
+
             for category, records in categories_dict.items():
-                # De-duplicate records (same line_score)
                 dedup_records = {}
                 for line_score, record in records:
                     line_score_str = str(line_score)
                     dedup_records[line_score_str] = record
-                
-                # Add each unique line_score to the batch
-                category_ref = date_ref.document(player_key).collection(category)
+
+                category_ref = player_doc_ref.collection(category)
                 for line_score_str, record in dedup_records.items():
                     doc_ref = category_ref.document(line_score_str)
                     batch.set(doc_ref, record)
                     total_uploaded += 1
                     batch_count += 1
-                    
-                    # Firestore batch limit is 500 operations
+
                     if batch_count >= 500:
                         batch.commit()
                         batch = db.batch()
                         batch_count = 0
-        
-        # Commit remaining operations in the batch
+
         if batch_count > 0:
             batch.commit()
-        
-        # Log completion for this game date
-        records_for_date = sum(len(records) for players in players_dict.values() for records in players.values())
+
+        records_for_date = sum(
+            len(records)
+            for players_by_cat in players_dict.values()
+            for records in players_by_cat.values()
+        )
         print(f"   ✅ Completed {game_date}: {records_for_date} records")
-    
+
     elapsed_time = time.time() - start_time
-    print(f"\n✅ Successfully uploaded {total_uploaded} documents to Firestore. Time: {elapsed_time:.2f}")
+    print(f"\n✅ {league_name}: Uploaded {total_uploaded} documents in {elapsed_time:.2f}s")
+
+
+# ---------- CLOUD FUNCTION ENTRYPOINT ----------
+
+@functions_framework.cloud_event
+def fetch_and_upload_all_prizepicks(event):
+    import time
+
+    overall_start = time.time()
+
+    # Turn dict into list so we know how many total leagues we have
+    league_items = list(LEAGUES.items())
+    total = len(league_items)
+
+    for idx, (league_name, cfg) in enumerate(league_items, start=1):
+        process_league(league_name, cfg["league_id"])
+
+        # After every league, pause 10s (except after the last batch)
+        print(f"⏸️  Finished {league_name}, sleeping 30s to avoid rate limits...")
+        time.sleep(30)
+
+    overall_elapsed = time.time() - overall_start
+    print(f"\n⏱️ Finished all leagues in {overall_elapsed:.2f}s")
