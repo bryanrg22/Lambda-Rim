@@ -1,12 +1,10 @@
-# Lambda Rim – *The #1 Hub for NBA Fanatasy Sports Betting for 'Over' Points*
+# Lambda Rim – *Quantitative Fantasy Sports Analytics Platform*
 <img width="500" height="500" alt="Image" src="https://github.com/user-attachments/assets/5b02c4fa-e8ca-4aba-9cc1-8837644c07d6" />
 
 
 ---
 
-> **If they use Math, why can't we? Sign Up For Free Today!**
-
-**Website:** [LambdaRim.com](https://lambdarim.com/)
+> **If they use Math, why can't we?**
 
 ---
 
@@ -16,7 +14,7 @@ Lambda Rim analyzes a **Fantasy Sports Pick**, and answers one burning question
 
 > **“Is the *****'over'***** worth my money?”**
 
-Behind that single answer sits a full pipeline—OCR → feature engineering → probabilistic models through machine learning and statistics → natural‑language rationale—served by a **React + Vite front‑end** and a **Flask API** on Google **Cloud Run**.
+Behind that single answer sits a full pipeline—OCR → feature engineering → probabilistic models through machine learning and statistics → natural‑language rationale—served by a **Flask API** on Google **Cloud Run**.
 
 ---
 
@@ -36,8 +34,7 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
   - **Playoff Support:** Automatically switches to playoff stats after ≥ 5 postseason games.  
   - **Real-Time Updates:** Background Cloud Functions mark "Concluded" games and settle bets, scrape official NBA Injury Report for up-to-date injury information. PrizePicks betting lines are automatically fetched daily via a local cron job (see note below).  
   - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
-  - **Privacy First**: Account Creation through Google, Microsoft, and Firebase Authentication Methods.
-  - **Terms Of Service**: First‑time Users ensures age & jurisdiction compliance.
+  - **+EV Arbitrage Scanner:** Detects positive expected value betting opportunities by comparing PrizePicks lines against sportsbook consensus odds (de-vigged via the power method). Multi-league support (NBA, NFL, NHL, MLB, CBB, CFB).
 
 ---
 
@@ -52,18 +49,21 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 - **firebase-admin** – Firestore & Auth  
 - **openai** – ChatGPT o4-mini integration
 
-### 🖼️ Front-End  
-- **React + Vite** – SPA framework  
-- **Tailwind CSS** – Utility-first styling  
+### 📊 +EV Arbitrage Scanner
+- **Python** – Core detection pipeline
+- **scipy** – Power‑method de‑vig (Brentq root‑finding)
+- **rapidfuzz** – Fuzzy player‑name matching
+- **The‑Odds‑API** – Multi‑book sportsbook odds
+- **SQLite** – Local caching & results persistence
 
-### 📈 Data & Analytics  
+### 📈 Data & Analytics
 - **Poisson & Monte Carlo** – Probability pipelines  
 - **GARCH (arch-model)** – Volatility forecasting  
 - **pandas, NumPy** – Data wrangling  
 - **NBA API** – Stats & box scores  
 - **OCR (screenshot_parser.py)** – Image data extraction  
 - **Requests** – Web scraping (NBA Injury Report)  
-- **!!Coming Soon!!** - ML Algorithm trained off of player picks stored in Firestore
+- **ML Pipeline (In Progress)** – Ensemble models trained on historical player picks stored in Firestore
 
 ### 🏙️ Infrastructure & Deployment  
 - **Firebase Hosting** – Front-end CDN & SSL  
@@ -197,97 +197,78 @@ Together, these three metrics give a balanced outlook:
 
 ---
 
-##  Database Schema Design
+## +EV Arbitrage Detection System
+
+The `abritage/` directory contains a **standalone proof‑of‑concept** that detects +EV (positive expected value) betting opportunities by comparing PrizePicks lines against sharp sportsbook consensus odds.
+
+### How It Works
 
 ```
-FIRESTORE DATABASE STRUCTURE
-├── processedPlayers/ (collection)
-│   ├── active/ (document)
-│   │   └── {player_name_threshold_YYYYMMDD}/ (document)
-│   │       ├── Basic Info: name, playerId, team, position, opponent
-│   │       ├── Game Context: photoUrl, teamLogo, opponentLogo, gameDate, gameTime
-│   │       ├── Playoff Context: gameType, teamPlayoffRank, opponentPlayoffRank
-│   │       ├── Statistical Data: seasonAvgPoints, last5RegularGamesAvg, seasonAvgVsOpponent
-│   │       ├── Advanced Metrics: advancedPerformance, careerSeasonStats
-│   │       ├── Injury Data: injuryReport (from web scraping)
-│   │       ├── AI Output: betExplanation (ChatGPT generated)
-│   │       ├── Core Probabilities: poissonProbability, monteCarloProbability
-│   │       ├── Volatility: volatilityForecast, volatilityPlayOffsForecast
-│   │       └── Game History: last5RegularGames[], season_games_agst_opp[], playoff_games[]
-│   │
-│   ├── concluded/ (document)
-│   │   └── {player_name_threshold_YYYYMMDD}/ (same structure as active)
-│   │
-│   └── injury_report/ (document)
-│       └── {team_name}/ (document)
-│           ├── lastUpdated: timestamp
-│           ├── players: array<map> (injury status per player)
-│           └── team: string
-│
-├── users/{userId}/ (collection)
-│   ├── activeBets/{YYYYMMDDTHHMMSSZ}/
-│   │   ├── betAmount: number
-│   │   ├── potentialWinnings: number
-│   │   └── picks: array<document_references>
-│   │
-│   ├── betHistory/{YYYYMMDDTHHMMSSZ}/
-│   │   ├── betAmount: number
-│   │   ├── potentialWinnings: number
-│   │   ├── betResult: string (win/loss)
-│   │   └── picks: array<document_references>
-│   │
-│   ├── picks: array<document_references>
-│   └── profileData: map
-│
-├── preproccessed_data/ (collection)
-│   └── prizepicks/ (document)
-│       └── leagues/ (collection)
-│           └── {LEAGUE}/ (document) e.g. "NBA", "NFL", "NHL", "CFB", "CBB", "SOCCER"
-│               └── {game_date}/ (collection) e.g. "2025-11-07"
-│                   └── {player_key}/ (document) e.g. "lebron_james"
-│                       ├── player_name: string e.g. "LeBron James"
-│                       ├── league: string e.g. "NBA"
-│                       ├── game_date: string e.g. "2025-11-07"
-│                       └── {category}/ (subcollection) e.g. "points", "assists", "fantasy_score"
-│                           └── {line_score}/ (document) e.g. "26.5"
-│                               ├── bet_type: string ("More/Less" or "More-only")
-│                               ├── odds_type: string ("standard", "goblin", "demon", etc.)
-│                               └── projection_type: string (API's projection_type value)
-│
-└── admin/ (collection)
-    ├── profile/ (admin user data)
-    ├── analytics/
-    │   ├── daily_stats/ (performance metrics)
-    │   ├── user_metrics/ (user engagement)
-    │   └── system_health/ (system monitoring)
-    ├── monitoring/
-    │   ├── api_performance/ (response times, errors)
-    │   └── error_logs/ (system errors)
-    └── reports/
-        ├── bet_performance/ (win rates, ROI)
-        └── player_analytics/ (player prediction accuracy)
+┌──────────────────┐     ┌──────────────────────┐
+│   PrizePicks API │     │   The‑Odds‑API        │
+│  (projections)   │     │  (multi‑book odds)    │
+└────────┬─────────┘     └──────────┬────────────┘
+         │                          │
+         ▼                          ▼
+┌──────────────────────────────────────────────────┐
+│              Player Name Matcher                  │
+│   Exact → Normalized → Override → Fuzzy (≥ 85%)  │
+└────────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│              De‑Vig Engine (Power Method)         │
+│   IP_over^k + IP_under^k = 1  (scipy brentq)    │
+└────────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│          Weighted Consensus Builder               │
+│  FanDuel(100) · Pinnacle(80) · DraftKings(60)    │
+│  BetMGM(40) · Caesars(40)                        │
+└────────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│              Edge Calculator                      │
+│  Edge = Fair_Prob − Break_Even_Threshold          │
+│  Flags opportunities with edge ≥ 2%              │
+└────────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+         ┌───────────────────────────┐
+         │  +EV Opportunities Table  │
+         │  (SQLite / CSV / stdout)  │
+         └───────────────────────────┘
 ```
+
+### Key Concepts
+
+| Concept | Description |
+| ------- | ----------- |
+| **De‑Vig (Power Method)** | Strips the bookmaker's margin from raw odds to recover fair probabilities. Solves for exponent *k* such that `IP_over^k + IP_under^k = 1`. |
+| **Weighted Consensus** | Averages fair probabilities across books, weighting sharper books (Pinnacle, FanDuel) more heavily than softer ones. |
+| **Edge Calculation** | `Edge = Fair Probability − Break‑Even Threshold`. Each PrizePicks entry type has a known break‑even (e.g., 6‑pick flex = 54.2%, 2‑pick power = 57.7%). |
+| **Edge Quality** | Excellent (≥ 5%), Very Good (≥ 3%), Good (≥ 2%) |
+
+
+### Supported Leagues
+
+NBA · NFL · NHL · MLB · CBB · CFB
+
+> **Note:** PrizePicks blocks cloud‑provider IPs, so the scanner must run from a residential IP (local machine).
 
 ---
-
 
 
 ## What Does the Future Hold for Lambda Rim ?
 
 As the sole developer of **Lambda Rim**, I envision it evolving far beyond an NBA “over points” analyzer. I turned \$10 into \$50+ on PrizePicks just by searcing up simple stats such as averages, injury reports, and team ranks all on my iphone — I saw potential that others overlooked. What many dismiss as pure gambling, I see as a microcosm of the stock market. By mining historical data, applying statistical & machine‑learning models, and detecting hidden patterns, I’m essentially shadowing what a quant does every day.
 
-My hackathon wins and in‑office stints at top quant/software firms (Jane Street, Google, D.E. Shaw) have allowed me to sharpen every algorithm and dashboard I have built. With that expertise, Lambda Rim’s mission is clear:
-
-> **Become the #1 Hub for Fantasy Sports Betting**
-
 
 ## 🔍 Next Steps of Action
 
-### 1. 📊 Expanding Comprehensive Analytics
-- **All NBA Categories**: Points, rebounds, assists, blocks, and more  
-- **Multi‑League Support**: Extend the same rigorous analytics to MLB, NFL, etc.
-
-### 2. 🤖 Advanced Machine Learning
+### 🤖 Advanced Machine Learning
 1. **Baseline Probability Ensemble**  
    Implement Regularised Logistic Regression, LightGBM, CatBoost, and stacking meta‑models—then calibrate—to generate rock‑solid win probabilities and surface your daily “best picks.”
 2. **Ticket Optimization & Correlation**  
@@ -299,20 +280,6 @@ My hackathon wins and in‑office stints at top quant/software firms (Jane Stree
    - **Hierarchical Bayesian Logistic** to stabilize predictions for rookies and low‑sample players
 5. **Heavy Hitters & Fine‑Tuning**  
    Build Player2Vec/TabTransformer embeddings, multi‑task neural nets for exact‑point forecasts, and playoff‑only fine‑tuning to eke out that final edge.
-
-### 3. 🌐 Community Hub
-- **Unified Creator Feed**: Twitch, TikTok, Discord—verified creators with performance badges  
-- **Social Features**: Friend lists, bet‑history sharing, and reputation scores  
-- **Odds Overlays**: Embed real‑time odds on social media videos (e.g., TikTok) to keep every discussion actionable
-
-### 4. 💸 Creator Economy
-- **Escrow Marketplace**: A safe, trustless place for creators to sell picks and users to transact  
-- **Creator Certification**: Vet & certify talent based on historical performance and on‑chain validation  
-- **Reputation & Trust**: Built‑in credibility scores spotlight proven winners and earn user confidence
-
----
-
-> **Lambda Rim** will soon bridge social media, fantasy sports betting, and users—empowering everyone with built‑in analytical tools fueled by advanced machine learning & statistics.
 
 ---
 

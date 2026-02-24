@@ -1,0 +1,12 @@
+# Environment
+.env
+venv/
+
+# Database
+ev_results.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

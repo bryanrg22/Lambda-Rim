@@ -20,3 +20,6 @@ backend/env
 
 .DS_Store
 **/.DS_Store
+
+.claude
+README2.md
