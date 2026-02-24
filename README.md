@@ -36,9 +36,11 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
   - **CI/CD & Hosting:** React + Vite on Firebase Hosting, Flask + Docker on Cloud Run, GitHub Actions auto-deploy.
   - **+EV Arbitrage Scanner:** Detects positive expected value betting opportunities by comparing PrizePicks lines against sportsbook consensus odds (de-vigged via the power method). Multi-league support (NBA, NFL, NHL, MLB, CBB, CFB).
 
+---
+
 ### Results
 
-<img src="frontEnd/public/prizepick_proof.png" alt="PrizePicks Results" width="600" />
+<img src="frontEnd/public/prizepick_proof.png" alt="PrizePicks Results" width="400" />
 
 ---
 
