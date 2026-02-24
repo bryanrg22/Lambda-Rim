@@ -211,33 +211,33 @@ The `abritage/` directory contains a **standalone proof‑of‑concept** that de
 
 ```
 ┌──────────────────┐     ┌──────────────────────┐
-│   PrizePicks API │     │   The‑Odds‑API        │
-│  (projections)   │     │  (multi‑book odds)    │
-└────────┬─────────┘     └──────────┬────────────┘
+│   PrizePicks API │     │   The‑Odds‑API       │
+│  (projections)   │     │  (multi‑book odds)   │
+└────────┬─────────┘     └──────────┬───────────┘
          │                          │
          ▼                          ▼
 ┌──────────────────────────────────────────────────┐
-│              Player Name Matcher                  │
+│              Player Name Matcher                 │
 │   Exact → Normalized → Override → Fuzzy (≥ 85%)  │
 └────────────────────────┬─────────────────────────┘
                          │
                          ▼
 ┌──────────────────────────────────────────────────┐
-│              De‑Vig Engine (Power Method)         │
-│   IP_over^k + IP_under^k = 1  (scipy brentq)    │
+│              De‑Vig Engine (Power Method)        │
+│   IP_over^k + IP_under^k = 1  (scipy brentq)     │
 └────────────────────────┬─────────────────────────┘
                          │
                          ▼
 ┌──────────────────────────────────────────────────┐
-│          Weighted Consensus Builder               │
+│          Weighted Consensus Builder              │
 │  FanDuel(100) · Pinnacle(80) · DraftKings(60)    │
 │  BetMGM(40) · Caesars(40)                        │
 └────────────────────────┬─────────────────────────┘
                          │
                          ▼
 ┌──────────────────────────────────────────────────┐
-│              Edge Calculator                      │
-│  Edge = Fair_Prob − Break_Even_Threshold          │
+│              Edge Calculator                     │
+│  Edge = Fair_Prob − Break_Even_Threshold         │
 │  Flags opportunities with edge ≥ 2%              │
 └────────────────────────┬─────────────────────────┘
                          │
