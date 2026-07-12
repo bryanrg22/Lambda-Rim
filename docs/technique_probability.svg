@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 950" font-family="'DM Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="ah-o" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#E8A838"/></marker>
+    <marker id="ah-g" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#b0aaa0"/></marker>
+  </defs>
+
+  <rect x="8" y="8" width="1384" height="934" rx="26" fill="#242220"/>
+
+  <!-- ============ LAYER 1: POISSON ============ -->
+  <rect x="30" y="28" width="1340" height="190" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="54" y="60" font-size="24" font-weight="bold" fill="#c9c3b8">LAYER 1 — POISSON BASELINE (prediction_analyzer.py)</text>
+
+  <rect x="54" y="78" width="470" height="118" rx="14" fill="#0E9F7A"/>
+  <text x="70" y="108" font-size="25" font-weight="bold" fill="#ffffff">Season-λ Poisson P(X ≥ t)</text>
+  <text x="70" y="134" font-size="18" fill="#e6e0d6">λ = season avg PPG, full regular season</text>
+  <text x="70" y="158" font-size="18" fill="#e6e0d6">P(X≥t) = 1 − Σ e^(−λ) λ^k / k!,  k &lt; ⌈t⌉</text>
+  <text x="70" y="182" font-size="18" fill="#e6e0d6">pure-math Python — zero dependencies</text>
+
+  <text x="570" y="100" font-size="17" font-weight="bold" fill="#cfc9bf">WHY IT EXISTS / WHAT BREAKS</text>
+  <text x="570" y="128" font-size="18" fill="#e6e0d6">Instant closed-form baseline from one parameter — the season mean.</text>
+  <text x="570" y="154" font-size="18" fill="#e6e0d6">Blind spot: Poisson forces variance = mean, and an October game</text>
+  <text x="570" y="180" font-size="18" fill="#e6e0d6">counts the same as last night. No recent form, no streaks.</text>
+
+  <line x1="700" y1="218" x2="700" y2="266" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <text x="718" y="248" font-size="17" fill="#cfc9bf">fix: resample the player's real recent form</text>
+
+  <!-- ============ LAYER 2: MONTE CARLO / FFI ============ -->
+  <rect x="30" y="270" width="1340" height="300" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="54" y="302" font-size="24" font-weight="bold" fill="#c9c3b8">LAYER 2 — 100K-DRAW MONTE CARLO IN OCAML, OVER CTYPES FFI</text>
+
+  <rect x="55" y="318" width="320" height="124" rx="14" fill="#0E9F7A"/>
+  <text x="71" y="350" font-size="25" font-weight="bold" fill="#ffffff">monte_carlo.py</text>
+  <text x="71" y="376" font-size="18" fill="#e6e0d6">μ, σ from ≤60 recent games</text>
+  <text x="71" y="400" font-size="18" fill="#e6e0d6">σ: sample std, floor 0.5</text>
+  <text x="71" y="424" font-size="18" fill="#e6e0d6">NumPy fallback if no .so</text>
+
+  <rect x="401" y="318" width="290" height="124" rx="14" fill="#6D5BD8"/>
+  <text x="417" y="350" font-size="25" font-weight="bold" fill="#ffffff">ctypes FFI</text>
+  <text x="417" y="376" font-size="18" fill="#e6e0d6">CDLL libmontecarlo.so</text>
+  <text x="417" y="400" font-size="18" fill="#e6e0d6">3×c_double + c_uint64</text>
+  <text x="417" y="424" font-size="18" fill="#e6e0d6">monte_carlo(μ,σ,t,100k)</text>
+
+  <rect x="717" y="318" width="290" height="124" rx="14" fill="#6D5BD8"/>
+  <text x="733" y="350" font-size="25" font-weight="bold" fill="#ffffff">mc_stub.c shim</text>
+  <text x="733" y="376" font-size="18" fill="#e6e0d6">caml_startup once</text>
+  <text x="733" y="400" font-size="18" fill="#e6e0d6">caml_named_value</text>
+  <text x="733" y="424" font-size="18" fill="#e6e0d6">caml_callbackN(4 args)</text>
+
+  <rect x="1033" y="318" width="330" height="124" rx="14" fill="#0E9F7A"/>
+  <text x="1049" y="350" font-size="25" font-weight="bold" fill="#ffffff">montecarlo.ml</text>
+  <text x="1049" y="376" font-size="18" fill="#e6e0d6">Box–Muller normal draws</text>
+  <text x="1049" y="400" font-size="18" fill="#e6e0d6">z=√(−2 ln u₁)·cos(2π u₂)</text>
+  <text x="1049" y="424" font-size="18" fill="#e6e0d6">100k tail-recursive loop</text>
+
+  <line x1="375" y1="380" x2="397" y2="380" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <line x1="691" y1="380" x2="713" y2="380" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <line x1="1007" y1="380" x2="1029" y2="380" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+
+  <path d="M 1198 442 L 1198 468 L 215 468 L 215 448" fill="none" stroke="#b0aaa0" stroke-width="2.5" marker-end="url(#ah-g)"/>
+  <text x="706" y="461" font-size="17" fill="#cfc9bf" text-anchor="middle">returns P(over) = draws &gt; t  /  100 000</text>
+
+  <text x="55" y="502" font-size="18" fill="#e6e0d6">WHY: resamples the player's real recent window (μ, σ from the last ≤60 games), separating spread from average.</text>
+  <text x="55" y="528" font-size="18" fill="#e6e0d6">The native OCaml loop keeps 100k draws off the Python interpreter; a NumPy fallback runs if the .so is missing.</text>
+  <text x="55" y="554" font-size="18" fill="#e6e0d6">Built in Docker stage 1: ocamlopt -output-obj + gcc mc_stub.o → libmontecarlo.so (OCaml 4.14, ctypes 0.15).</text>
+
+  <line x1="700" y1="570" x2="700" y2="611" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <text x="718" y="596" font-size="17" fill="#cfc9bf">still assumes one constant σ → forecast it instead</text>
+
+  <!-- ============ LAYER 3: GARCH ============ -->
+  <rect x="30" y="615" width="1340" height="170" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="54" y="647" font-size="24" font-weight="bold" fill="#c9c3b8">LAYER 3 — GARCH(1,1) VOLATILITY FORECAST (volatility.py)</text>
+
+  <rect x="54" y="663" width="470" height="112" rx="14" fill="#0E9F7A"/>
+  <text x="70" y="693" font-size="25" font-weight="bold" fill="#ffffff">GARCH(1,1) → next-game σ</text>
+  <text x="70" y="719" font-size="18" fill="#e6e0d6">last 50 games → first-difference series</text>
+  <text x="70" y="741" font-size="18" fill="#e6e0d6">arch_model(vol='Garch', p=1, q=1).fit()</text>
+  <text x="70" y="763" font-size="18" fill="#e6e0d6">σ̂ = √(1-step-ahead forecast variance)</text>
+
+  <text x="570" y="684" font-size="17" font-weight="bold" fill="#cfc9bf">WHY IT EXISTS / WHAT IT CORRECTS</text>
+  <text x="570" y="710" font-size="18" fill="#e6e0d6">Monte Carlo assumes one constant σ across the window, but scoring</text>
+  <text x="570" y="734" font-size="18" fill="#e6e0d6">variance clusters — hot and cold streaks. GARCH(1,1) forecasts the</text>
+  <text x="570" y="758" font-size="18" fill="#e6e0d6">next game's σ, flagging streaky players before the MC number is trusted.</text>
+
+  <line x1="700" y1="785" x2="700" y2="814" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <text x="718" y="806" font-size="17" fill="#cfc9bf">app.py stores all three per pick</text>
+
+  <!-- ============ OUTPUT ============ -->
+  <rect x="420" y="818" width="560" height="90" rx="14" fill="#B8842C"/>
+  <text x="436" y="850" font-size="25" font-weight="bold" fill="#ffffff">Pick document (Firestore)</text>
+  <text x="436" y="876" font-size="18" fill="#e6e0d6">poissonProbability · monteCarloProbability ·</text>
+  <text x="436" y="898" font-size="18" fill="#e6e0d6">volatilityForecast — shown side-by-side per pick</text>
+
+  <!-- legend -->
+  <line x1="54" y1="928" x2="110" y2="928" stroke="#E8A838" stroke-width="3" marker-end="url(#ah-o)"/>
+  <text x="122" y="934" font-size="17" fill="#cfc9bf">primary flow</text>
+  <line x1="264" y1="928" x2="320" y2="928" stroke="#b0aaa0" stroke-width="2.5" marker-end="url(#ah-g)"/>
+  <text x="332" y="934" font-size="17" fill="#cfc9bf">in-process return</text>
+</svg>
