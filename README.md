@@ -8,6 +8,10 @@
 
 ---
 
+## System Architecture
+
+<img src="docs/architecture.svg" alt="System architecture diagram" width="900"/>
+
 ## What is Lambda Rim?
 
 Lambda Rim analyzes a **Fantasy Sports Pick**, and answers one burning question:
