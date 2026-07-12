@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 950" font-family="'DM Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <rect x="8" y="8" width="1384" height="934" rx="26" fill="#242220"/>
+
+  <!-- Tile 1: 100,000 sims -->
+  <rect x="45" y="50" width="640" height="390" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="85" y="170" font-size="64" font-weight="bold" fill="#E8A838">100,000</text>
+  <text x="85" y="230" font-size="20" fill="#cfc9bf">Monte Carlo draws per prop — Box–Muller</text>
+  <text x="85" y="258" font-size="20" fill="#cfc9bf">normals in a native OCaml loop, called</text>
+  <text x="85" y="286" font-size="20" fill="#cfc9bf">from Python through a ctypes C shim</text>
+  <text x="85" y="400" font-size="15" fill="#8a847a">backEnd/monte_carlo.py · montecarlo.ml · mc_stub.c</text>
+
+  <!-- Tile 2: $720 -> $2,414 -->
+  <rect x="715" y="50" width="640" height="390" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="755" y="170" font-size="64" font-weight="bold" fill="#E8A838">$720 → $2,414</text>
+  <text x="755" y="230" font-size="20" fill="#cfc9bf">entry fees → payouts shown across four</text>
+  <text x="755" y="258" font-size="20" fill="#cfc9bf">consecutive winning 6-Pick lineups,</text>
+  <text x="755" y="286" font-size="20" fill="#cfc9bf">Feb 12 – Feb 23, 2025</text>
+  <text x="755" y="400" font-size="15" fill="#8a847a">frontEnd/public/prizepick_proof.png (committed screenshot)</text>
+
+  <!-- Tile 3: 5 sportsbooks -->
+  <rect x="45" y="480" width="640" height="390" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="85" y="600" font-size="64" font-weight="bold" fill="#E8A838">5 sportsbooks</text>
+  <text x="85" y="660" font-size="20" fill="#cfc9bf">de-vigged (power method) into a sharpness-</text>
+  <text x="85" y="688" font-size="20" fill="#cfc9bf">weighted consensus — FanDuel 100, Pinnacle 80,</text>
+  <text x="85" y="716" font-size="20" fill="#cfc9bf">DraftKings 60, BetMGM 40, Caesars 40 —</text>
+  <text x="85" y="744" font-size="20" fill="#cfc9bf">flagging PrizePicks edges ≥ 2%</text>
+  <text x="85" y="830" font-size="15" fill="#8a847a">abritage/src/config.py — SPORTSBOOK_WEIGHTS, EDGE_MINIMUM</text>
+
+  <!-- Tile 4: 3,000-7,000 projections -->
+  <rect x="715" y="480" width="640" height="390" rx="20" fill="#2e2b28" stroke="#4a463f" stroke-width="2"/>
+  <text x="755" y="600" font-size="64" font-weight="bold" fill="#E8A838">3,000–7,000</text>
+  <text x="755" y="660" font-size="20" fill="#cfc9bf">PrizePicks projections ingested per daily</text>
+  <text x="755" y="688" font-size="20" fill="#cfc9bf">fetch across 6 leagues, in 3–5 minutes</text>
+  <text x="755" y="716" font-size="20" fill="#cfc9bf">via 500-op Firestore batch writes</text>
+  <text x="755" y="830" font-size="15" fill="#8a847a">prizepicks_fetch_fn/README.md — Performance section</text>
+
+  <text x="700" y="918" font-size="15" fill="#8a847a" text-anchor="middle">Every figure traced in-repo (bryanrg22/lambda-rim): monte_carlo.py · prizepick_proof.png · abritage/src/config.py · prizepicks_fetch_fn/README.md</text>
+</svg>
