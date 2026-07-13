@@ -46,6 +46,8 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 
 <img src="frontEnd/public/prizepick_proof.png" alt="PrizePicks Results" width="400" />
 
+<img src="docs/numbers.svg" alt="Key numbers: 100k Monte Carlo draws per prop, $720 to $2,414 across four winning lineups, 5-book de-vigged consensus, daily projection ingestion" width="900"/>
+
 ---
 
 ## 🛠️ Tech Stack at a Glance
@@ -163,6 +165,8 @@ Behind that single answer sits a full pipeline—OCR → feature engineering �
 ## 📊 More on the Probability & Forecasting Methods
 
 Below is a quick reference on how each analytical value is produced inside the player documents.
+
+<img src="docs/technique_probability.svg" alt="Three-layer probability stack: Poisson baseline, 100k-draw OCaml Monte Carlo over ctypes FFI, GARCH(1,1) volatility forecast" width="900"/>
 
 ### 🔢 Poisson Probability (`poissonProbability`)
 - **Data window:** *All* regular‑season games from the current season  
